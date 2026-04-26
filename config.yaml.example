@@ -1,0 +1,34 @@
+autostart:
+  Apache Web Server: true
+  Mail Server (Mailpit): false
+  MySQL Database: true
+  Nginx Web Server: true
+  Node.js Service: true
+  PHP Version: true
+  PostgreSQL Database: false
+  Redis Cache: false
+general:
+  auto_start_all: false
+  auto_update: false
+  auto_vhost: true
+  theme: dark
+ports:
+  Apache Web Server: 80
+  Mail Server (Mailpit): 1025
+  MySQL Database: 3306
+  Nginx Web Server: 8080
+  Node.js Service: 3000
+  PHP Version: 9000
+  PostgreSQL Database: 5432
+  Redis Cache: 6379
+services_enabled:
+  Apache Web Server: true
+  Mail Server (Mailpit): false
+  MySQL Database: true
+  Nginx Web Server: false
+  Node.js Service: true
+  PHP Version: true
+  PostgreSQL Database: false
+  Redis Cache: false
+services_ssl: {}
+versions: {}

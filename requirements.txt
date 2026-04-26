@@ -1,0 +1,6 @@
+customtkinter
+psutil
+pystray
+Pillow
+pyyaml
+Jinja2
