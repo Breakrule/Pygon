@@ -19,6 +19,7 @@ class BaseService(ABC):
         self._log_buffer = collections.deque(maxlen=500)
         self._error_buffer = collections.deque(maxlen=200)
         self._reader_threads = []
+        self.requires_restart_on_version_change = True
 
     @property
     @abstractmethod
@@ -128,9 +129,25 @@ class BaseService(ABC):
         return ""
         
     def set_active_version(self, version: str):
-        """Saves the selected version."""
+        """Saves the selected version. Restarts service if running."""
         if self.config:
-            self.config.set_service_version(self.name, version)
+            old_version = self.active_version
+            if old_version != version:
+                self.config.set_service_version(self.name, version)
+                if self.is_running() and self.requires_restart_on_version_change:
+                    logging.info(f"Restarting {self.name} due to version change ({old_version} -> {version})")
+                    self.stop()
+                    # A small delay might be needed, but usually the UI loop handles the restart call 
+                    # or we can trigger it here if we have a reference to the app. 
+                    # For now, we'll let the UI handle the 'start' call after stopping.
+                    self.start()
+
+    def get_version_display(self, version: str) -> str:
+        """Returns a clean display string for a version folder. Override in subclass."""
+        if not version:
+            return "Default"
+        # Default behavior: just return the folder name
+        return version
             
     def get_actual_executable_path(self) -> str:
         """Resolves the real executable path considering versions."""
@@ -180,9 +197,24 @@ class BaseService(ABC):
             logging.info(f"{self.name} is already running.")
             return True
 
-        exe_path = self.get_actual_executable_path()
+    def get_command_line(self) -> list:
+        """Returns the full command line (list) to execute."""
+        return [self.get_actual_executable_path()] + self.get_start_args()
 
-        if not os.path.isfile(exe_path):
+    def start(self) -> bool:
+        """Starts the service subprocess."""
+        if not self.is_installed:
+            logging.error(f"{self.name} is not installed.")
+            return False
+
+        if self.is_running():
+            logging.info(f"{self.name} is already running.")
+            return True
+
+        exe_path = self.get_actual_executable_path()
+        cmd = self.get_command_line()
+
+        if not os.path.isfile(exe_path) and not cmd[0].startswith("cmd"):
             logging.error(f"{self.name}: executable not found at {exe_path}")
             self._error_buffer.append(f"Executable not found: {exe_path}")
             return False
@@ -190,7 +222,6 @@ class BaseService(ABC):
         try:
             creationflags = subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
             
-            cmd = [exe_path] + self.get_start_args()
             self.process = subprocess.Popen(
                 cmd,
                 cwd=self.get_working_dir(),

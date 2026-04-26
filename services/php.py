@@ -41,3 +41,21 @@ class PhpService(BaseService):
             {'label': '📁 Open Folder', 'action': 'open_folder'},
         ])
         return items
+
+    def get_version_display(self, version: str) -> str:
+        """Parses version from folder name (e.g., 'php-8.4.4-nts' -> '8.4')."""
+        if not version: return "Default"
+        import re
+        match = re.search(r'php-(\d+\.\d+)', version)
+        if match:
+            return match.group(1)
+        return version
+
+    def get_actual_executable_path(self) -> str:
+        """Resolves php-cgi.exe inside version subfolders."""
+        base_exe = "php-cgi.exe"
+        if self.active_version:
+            path = os.path.join(self.bin_dir, "php", self.active_version, base_exe)
+            if os.path.exists(path):
+                return path
+        return super().get_actual_executable_path()

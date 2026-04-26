@@ -98,3 +98,12 @@ class ConfigManager:
     def set_theme(self, theme: str):
         """Saves the theme preference."""
         self.set_general("theme", theme)
+
+    # ── Close Behavior ───────────────────────────────────────────────
+    def get_close_behavior(self) -> str:
+        """Returns the saved close behavior ('tray', 'exit', or 'ask'). Defaults to 'ask'."""
+        return self.get_general("close_behavior", "ask")
+
+    def set_close_behavior(self, behavior: str):
+        """Saves the close behavior preference."""
+        self.set_general("close_behavior", behavior)

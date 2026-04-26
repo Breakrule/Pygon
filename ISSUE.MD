@@ -1,6 +1,6 @@
-# Pygon v2.0 — Major Refactor & UI Redesign
+# Pygon v2.0 — Major Refactor & UI Redesign [COMPLETED]
 
-Complete rewrite of the Pygon local development environment. Scope: strip to 4 core services (Apache, MySQL, PHP, Node.js), redesign the UI for a cleaner look with proper dark/light theming, implement a robust version-switching system, and fix the close/tray behavior.
+The major v2.0 refactor is now complete. The project has been stripped to 4 core services, the UI/UX has been modernized with a new theme system, and all requested behavioral fixes (tray, close dialog, version switching, node runtime) have been implemented.
 
 ## User Review Required
 

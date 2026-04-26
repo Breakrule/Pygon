@@ -8,34 +8,21 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 class HostManager:
     HOSTS_FILE = r"C:\Windows\System32\drivers\etc\hosts"
     
-    def __init__(self, nginx_conf_dir: str, document_root: str):
-        self.nginx_conf_dir = nginx_conf_dir
+    def __init__(self, vhost_conf_dir: str, document_root: str):
+        self.vhost_conf_dir = vhost_conf_dir
         self.document_root = document_root
         
-        # Simple Jinja2 template for Nginx Auto-Vhosts
-        self.template_str = r"""
-server {
-    listen 80;
-    {% if ssl_cert and ssl_key %}
-    listen 443 ssl;
-    ssl_certificate "{{ ssl_cert }}";
-    ssl_certificate_key "{{ ssl_key }}";
-    {% endif %}
-    
-    server_name {{ project_name }}.test;
-    root "{{ project_path }}";
-    index index.html index.htm index.php;
-
-    location / {
-        try_files $uri $uri/ /index.php?$query_string;
-    }
-
-    location ~ \.php$ {
-        include fastcgi_params;
-        fastcgi_pass 127.0.0.1:9000;
-        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-    }
-}
+        # Apache VirtualHost Template
+        self.template_str = """
+<VirtualHost *:80>
+    ServerName {{ project_name }}.test
+    DocumentRoot "{{ project_path }}"
+    <Directory "{{ project_path }}">
+        Options Indexes FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+</VirtualHost>
 """
 
     def is_admin(self) -> bool:
@@ -67,36 +54,24 @@ server {
             logging.error(f"Failed to edit hosts file: {e}")
             return False
 
-    def generate_nginx_config(self, project_name: str, ssl_cert: str = None, ssl_key: str = None) -> bool:
-        """Generates an Nginx config file for a project in the www root."""
+    def generate_vhost_config(self, project_name: str) -> bool:
+        """Generates an Apache VirtualHost config file."""
         try:
             template = Template(self.template_str)
-            
-            project_path = os.path.join(self.document_root, project_name)
-            project_path = project_path.replace("\\", "/") # Nginx uses forward slashes
-            
-            # Format SSL paths for Nginx
-            if ssl_cert: ssl_cert = ssl_cert.replace("\\", "/")
-            if ssl_key: ssl_key = ssl_key.replace("\\", "/")
+            project_path = os.path.join(self.document_root, project_name).replace("\\", "/")
             
             config_content = template.render(
                 project_name=project_name, 
-                project_path=project_path,
-                ssl_cert=ssl_cert,
-                ssl_key=ssl_key
+                project_path=project_path
             )
             
-            conf_filename = os.path.join(self.nginx_conf_dir, f"auto.{project_name}.test.conf")
-            
-            # Create destination directory if it doesn't exist
+            conf_filename = os.path.join(self.vhost_conf_dir, f"vhost-{project_name}.conf")
             os.makedirs(os.path.dirname(conf_filename), exist_ok=True)
             
             with open(conf_filename, 'w') as f:
                 f.write(config_content)
-                
-            logging.info(f"Generated Nginx config for {project_name}.test")
+            logging.info(f"Generated VirtualHost config for {project_name}.test")
             return True
-            
         except Exception as e:
-            logging.error(f"Failed to generate Nginx config: {e}")
+            logging.error(f"Failed to generate VirtualHost config: {e}")
             return False

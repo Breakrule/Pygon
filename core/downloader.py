@@ -14,13 +14,9 @@ class AutoDownloader:
     # Download URLs for all services (Windows x64)
     URLS = {
         "apache":   "https://www.apachelounge.com/download/VS18/binaries/httpd-2.4.66-260223-Win64-VS18.zip",
-        "nginx":    "https://nginx.org/download/nginx-1.28.0.zip",
         "mysql":    "https://dev.mysql.com/get/Downloads/MySQL-8.4/mysql-8.4.3-winx64.zip",
         "php":      "https://windows.php.net/downloads/releases/php-8.4.4-nts-Win32-vs17-x64.zip",
         "node":     "https://nodejs.org/dist/v20.20.0/node-v20.20.0-win-x64.zip",
-        "redis":    "https://github.com/tporadowski/redis/releases/download/v5.0.14.1/Redis-x64-5.0.14.1.zip",
-        "mailpit":  "https://github.com/axllent/mailpit/releases/download/v1.29.4/mailpit-windows-amd64.zip",
-        "pgsql":    "https://get.enterprisedb.com/postgresql/postgresql-16.6-1-windows-x64-binaries.zip",
     }
 
     # MySQL blocks standard browser User-Agents, but allows standard command line tools like curl.
@@ -60,7 +56,7 @@ class AutoDownloader:
     def download_and_extract(self, service_name: str, target_folder: str, progress_callback=None, status_callback=None) -> bool:
         """
         Downloads a zip file from URLS[service_name] and extracts it to target_folder.
-        target_folder should be an absolute path to the service directory (e.g. bin/nginx).
+        target_folder should be an absolute path to the service directory (e.g. bin/apache).
         """
         if service_name not in self.URLS:
             logging.error(f"No download URL configured for {service_name}")
@@ -102,8 +98,6 @@ class AutoDownloader:
             # Service-specific post-install patching
             if service_name == "apache":
                 self._patch_apache_config(extract_path)
-            elif service_name == "nginx":
-                self._patch_nginx_config(extract_path)
 
             logging.info(f"Successfully installed {service_name}")
             return True
@@ -127,14 +121,10 @@ class AutoDownloader:
         # Map of service_name -> expected nested folder prefix patterns
         # We look for any single subfolder that matches and flatten it
         prefix_patterns = {
-            "nginx":   "nginx-",
             "apache":  "Apache24",
             "mysql":   "mysql-",
             "php":     "php-",
             "node":    "node-",
-            "redis":   "Redis-",       # tporadowski zip: Redis-x64-5.0.14.1/
-            "pgsql":   "pgsql",         # EDB zip has a pgsql/ folder inside
-            "mailpit": None,            # Mailpit zip is flat (just mailpit.exe)
         }
 
         prefix = prefix_patterns.get(service_name)
@@ -207,33 +197,3 @@ class AutoDownloader:
         except Exception as e:
             logging.error(f"Failed to patch Apache config: {e}")
 
-    def _patch_nginx_config(self, extract_path: str):
-        """Patches Nginx's nginx.conf to use port 8080 by default and include vhost configurations."""
-        conf_file = os.path.join(extract_path, 'conf', 'nginx.conf')
-        if not os.path.exists(conf_file):
-            return
-
-        try:
-            with open(conf_file, 'r', encoding='utf-8') as f:
-                content = f.read()
-
-            # 1. Change default port 80 to 8080 to prevent conflicts with Apache/IIS
-            content = content.replace('listen       80;', 'listen       8080;')
-
-            # 2. Add include directive for Pygon vhosts if not present
-            if 'include       vhosts/*.conf;' not in content:
-                # Find the end of the http block
-                http_end_index = content.rfind('}')
-                if http_end_index != -1:
-                    vhost_include = "\n    # Pygon Auto-Generated VHosts\n    include       vhosts/*.conf;\n"
-                    content = content[:http_end_index] + vhost_include + content[http_end_index:]
-
-            with open(conf_file, 'w', encoding='utf-8') as f:
-                f.write(content)
-            
-            # Ensure the vhosts directory actually exists so Nginx doesn't crash on startup
-            os.makedirs(os.path.join(extract_path, 'conf', 'vhosts'), exist_ok=True)
-            
-            logging.info("Successfully patched Nginx nginx.conf to port 8080 with vhosts included")
-        except Exception as e:
-            logging.error(f"Failed to patch Nginx config: {e}")
