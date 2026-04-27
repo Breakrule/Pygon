@@ -47,7 +47,7 @@ class ServiceCard(QFrame):
         self.icon_lbl = QLabel(self._get_service_badge())
         self.icon_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.icon_lbl.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
-        self.icon_lbl.setStyleSheet("color: white; background: transparent;")
+        self.icon_lbl.setStyleSheet(f"color: {self.colors['text_inv']}; background: transparent;")
         icon_layout.addWidget(self.icon_lbl)
         
         self.layout.addWidget(self.icon_frame)

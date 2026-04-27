@@ -112,7 +112,7 @@ class PygonApp(BaseWindow):
         header_layout.addStretch()
         
         self.db_manager_btn = QPushButton("🗄  Database")
-        self.db_manager_btn.setFixedSize(130, 40)
+        self.db_manager_btn.setFixedSize(150, 40)
         self.db_manager_btn.setToolTip("Open HeidiSQL Database Manager")
         self.db_manager_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.db_manager_btn.clicked.connect(lambda: self._open_db_manager(None))

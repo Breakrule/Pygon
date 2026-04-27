@@ -25,7 +25,7 @@ class ConsolePanel(QFrame):
             editor.setFont(QFont("Consolas", 10))
             
             # Text color based on tab
-            color = "#A8D8A0" if tab_name == "Console" else (self.colors["text_dim"] if tab_name == "Logs" else "#FF6B6B")
+            color = self.colors["console_text"] if tab_name == "Console" else (self.colors["text_dim"] if tab_name == "Logs" else "#FF6B6B")
             editor.setStyleSheet(f"color: {color};")
             
             self.tab_widget.addTab(editor, tab_name)

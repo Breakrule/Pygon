@@ -37,6 +37,7 @@ class TopBar(QWidget):
         
         self.add_profile_btn = QPushButton("+")
         self.add_profile_btn.setFixedSize(30, 36)
+        self.add_profile_btn.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
         self.add_profile_btn.setToolTip("Create new profile from current state")
         self.add_profile_btn.clicked.connect(self._on_add_profile_clicked)
         layout.addWidget(self.add_profile_btn)

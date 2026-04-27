@@ -7,13 +7,15 @@ THEMES = {
         "border": "#30363D",
         "text": "#E6EDF3",
         "text_dim": "#8B949E",
-        "accent": "#00F3FF",        # Neon Cyan
+        "text_inv": "#000000",
+        "accent": "#00F3FF",
         "accent_hover": "#00D1FF",
-        "success": "#39FF14",       # Neon Green
-        "danger": "#FF0055",        # Neon Pink
+        "success": "#39FF14",
+        "danger": "#FF0055",
         "danger_hover": "#FF3377",
-        "warning": "#F2FF00",       # Neon Yellow
+        "warning": "#F2FF00",
         "console_bg": "#010409",
+        "console_text": "#A8D8A0",
         "status_bar": "#0D1117",
         "scroll_handle": "#30363D",
         "scroll_bg": "#05070A"
@@ -25,14 +27,16 @@ THEMES = {
         "card_hover": "#E2E8F0",
         "border": "#CBD5E1",
         "text": "#0F172A",
-        "text_dim": "#64748B",
-        "accent": "#3B82F6",        # Blue
+        "text_dim": "#3C4552",
+        "text_inv": "#0F172A",
+        "accent": "#3B82F6",
         "accent_hover": "#2563EB",
-        "success": "#10B981",       # Emerald
-        "danger": "#EF4444",        # Red
+        "success": "#10B981",
+        "danger": "#EF4444",
         "danger_hover": "#DC2626",
-        "warning": "#F59E0B",       # Amber
-        "console_bg": "#1E293B",    # Keep console dark for readability
+        "warning": "#F59E0B",
+        "console_bg": "#F1F5F9",
+        "console_text": "#1E293B",
         "status_bar": "#E2E8F0",
         "scroll_handle": "#CBD5E1",
         "scroll_bg": "#F8FAFC"
@@ -97,7 +101,7 @@ def generate_qss(colors: dict) -> str:
         
         QPushButton#AccentButton {{
             background-color: {colors['success']};
-            color: #FFFFFF;
+            color: {colors['text_inv']};
             border: none;
             padding: 8px 15px;
             font-size: 10pt;
@@ -105,12 +109,12 @@ def generate_qss(colors: dict) -> str:
         
         QPushButton#AccentButton:hover {{
             background-color: {colors['accent']};
-            color: #FFFFFF;
+            color: {colors['text_inv']};
         }}
         
         QPushButton#DangerButton {{
             background-color: {colors['danger']};
-            color: #FFFFFF;
+            color: {colors['text_inv']};
             border: none;
             padding: 8px 15px;
             font-size: 10pt;
@@ -125,7 +129,7 @@ def generate_qss(colors: dict) -> str:
         
         QPushButton#MenuButton:hover {{
             background-color: {colors['accent']};
-            color: #000000;
+            color: {colors['text_inv']};
         }}
         
         QProgressBar {{
@@ -167,19 +171,23 @@ def generate_qss(colors: dict) -> str:
         
         QPlainTextEdit, QTextEdit, QLineEdit, QSpinBox {{
             background-color: {colors['console_bg']};
-            color: {colors['accent']};
-            border: 1px solid {colors['accent']};
+            color: {colors['text']};
+            border: 1px solid {colors['border']};
             border-radius: 8px;
             padding: 6px 12px;
             font-family: 'Consolas', 'Courier New';
             selection-background-color: {colors['accent']};
-            selection-color: black;
+            selection-color: {colors['text_inv']};
         }}
         
         QSpinBox::up-button, QSpinBox::down-button {{
-            width: 20px;
-            border: none;
-            background: {colors['surface']};
+            width: 24px;
+            border-left: 1px solid {colors['border']};
+            background: {colors['card']};
+        }}
+        
+        QSpinBox::up-button:hover, QSpinBox::down-button:hover {{
+            background: {colors['card_hover']};
         }}
         
         QComboBox {{
@@ -218,7 +226,7 @@ def generate_qss(colors: dict) -> str:
         
         QMenu::item:selected {{
             background-color: {colors['accent']};
-            color: black;
+            color: {colors['text_inv']};
         }}
         
         QMenu::separator {{
@@ -227,9 +235,10 @@ def generate_qss(colors: dict) -> str:
             margin: 5px 10px;
         }}
         
-        QCheckBox {{
+        QCheckBox, QRadioButton {{
             spacing: 12px;
             font-weight: 500;
+            color: {colors['text']};
         }}
         
         QCheckBox::indicator {{
