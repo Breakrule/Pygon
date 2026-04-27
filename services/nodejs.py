@@ -1,3 +1,4 @@
+import os
 from services.base import BaseService
 
 
@@ -8,7 +9,7 @@ class NodejsService(BaseService):
 
     @property
     def icon(self) -> str:
-        return "NJ"
+        return "⬡"
 
     @property
     def icon_color(self) -> str:
@@ -20,7 +21,7 @@ class NodejsService(BaseService):
 
     @property
     def executable_path(self) -> str:
-        return "node/node.exe"
+        return "node.exe"
 
     @property
     def default_port(self) -> int:
@@ -51,7 +52,6 @@ class NodejsService(BaseService):
         """Resolves node.exe inside version subfolders."""
         base_exe = "node.exe"
         if self.active_version:
-            import os
             path = os.path.join(self.bin_dir, "node", self.active_version, base_exe)
             if os.path.exists(path):
                 return path
@@ -67,7 +67,6 @@ class NodejsService(BaseService):
 
     def get_start_args(self) -> list:
         """If a project is set, returns npm args."""
-        import os
         working_dir = self.get_working_dir()
         if os.path.exists(os.path.join(working_dir, "package.json")):
             npm_path = os.path.join(os.path.dirname(self.get_actual_executable_path()), "npm.cmd")
@@ -78,7 +77,6 @@ class NodejsService(BaseService):
 
     def get_command_line(self) -> list:
         """If a project is set, run 'npm run dev' via cmd /c."""
-        import os
         args = self.get_start_args()
         if args and args[0] == "/c":
             return ["cmd"] + args

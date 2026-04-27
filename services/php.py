@@ -1,3 +1,4 @@
+import os
 from services.base import BaseService
 
 
@@ -8,7 +9,7 @@ class PhpService(BaseService):
 
     @property
     def icon(self) -> str:
-        return "PP"
+        return "🐘"
 
     @property
     def icon_color(self) -> str:
@@ -20,7 +21,7 @@ class PhpService(BaseService):
 
     @property
     def executable_path(self) -> str:
-        return "php/php-cgi.exe"
+        return "php-cgi.exe"
 
     @property
     def default_port(self) -> int:

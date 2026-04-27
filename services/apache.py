@@ -1,3 +1,6 @@
+import os
+import re
+import logging
 from services.base import BaseService
 
 
@@ -8,7 +11,7 @@ class ApacheService(BaseService):
 
     @property
     def icon(self) -> str:
-        return "AP"
+        return "🌐"
 
     @property
     def icon_color(self) -> str:
@@ -20,7 +23,7 @@ class ApacheService(BaseService):
 
     @property
     def executable_path(self) -> str:
-        return "apache/bin/httpd.exe"
+        return "bin/httpd.exe"
 
     @property
     def default_port(self) -> int:
@@ -45,47 +48,54 @@ class ApacheService(BaseService):
         return items
 
     def start(self) -> bool:
-        """Patch PHP config before starting."""
-        self._patch_php_config()
+        """Prepare config before starting."""
+        self._prepare_config()
         return super().start()
 
-    def _patch_php_config(self):
-        """Patches httpd.conf to load the correct PHP module DLL."""
+    def _prepare_config(self):
+        """Patches httpd.conf for ServerRoot and PHP module paths."""
         if not self.config: return
         
-        php_ver = self.config.get_service_version("PHP Version")
-        if not php_ver: return
+        # 1. Paths
+        exe_path = self.get_actual_executable_path()
+        apache_version_dir = os.path.dirname(os.path.dirname(exe_path))
+        apache_type_dir = os.path.dirname(apache_version_dir)
+        bin_root = os.path.dirname(apache_type_dir)
         
-        import os
-        bin_dir = os.path.dirname(os.path.dirname(self.get_actual_executable_path()))
-        conf_path = os.path.join(bin_dir, "conf", "httpd.conf")
-        
+        conf_path = os.path.join(apache_version_dir, "conf", "httpd.conf")
         if not os.path.exists(conf_path): return
-        
-        # Determine PHP module path
-        php_dir = os.path.join(os.path.dirname(bin_dir), "php", php_ver)
-        # Look for php8apache2_4.dll or similar
-        php_dll = ""
-        for f in os.listdir(php_dir):
-            if f.startswith("php") and f.endswith("apache2_4.dll"):
-                php_dll = os.path.join(php_dir, f).replace("\\", "/")
-                break
-        
-        if not php_dll: return
         
         try:
             with open(conf_path, "r") as f:
                 content = f.read()
             
-            import re
-            # Update LoadModule
-            module_line = f'LoadModule php_module "{php_dll}"'
-            if 'LoadModule php_module' in content:
-                content = re.sub(r'LoadModule php_module ".*"', module_line, content)
-            else:
-                content += f"\n{module_line}\nAddHandler application/x-httpd-php .php\nPHPIniDir \"{php_dir.replace('\\', '/')}\"\n"
+            # 2. Patch ServerRoot (SRVROOT)
+            safe_root = apache_version_dir.replace("\\", "/")
+            # Match 'Define SRVROOT "..."' or 'ServerRoot "..."'
+            if 'Define SRVROOT' in content:
+                content = re.sub(r'Define SRVROOT ".*"', f'Define SRVROOT "{safe_root}"', content)
+            elif 'ServerRoot' in content:
+                content = re.sub(r'ServerRoot ".*"', f'ServerRoot "{safe_root}"', content)
+
+            # 3. Patch PHP (if version selected)
+            php_ver = self.config.get_service_version("PHP Version")
+            if php_ver:
+                php_dir = os.path.join(bin_root, "php", php_ver)
+                php_dll = ""
+                if os.path.exists(php_dir):
+                    for f in os.listdir(php_dir):
+                        if f.startswith("php") and f.endswith("apache2_4.dll"):
+                            php_dll = os.path.join(php_dir, f).replace("\\", "/")
+                            break
+                
+                if php_dll:
+                    module_line = f'LoadModule php_module "{php_dll}"'
+                    if 'LoadModule php_module' in content:
+                        content = re.sub(r'LoadModule php_module ".*"', module_line, content)
+                    else:
+                        content += f"\n{module_line}\nAddHandler application/x-httpd-php .php\nPHPIniDir \"{php_dir.replace('\\', '/')}\"\n"
             
-            with open(conf_path, "w") as f:
+            with os.fdopen(os.open(conf_path, os.O_WRONLY | os.O_TRUNC | os.O_CREAT), 'w') as f:
                 f.write(content)
-        except Exception:
-            pass
+        except Exception as e:
+            logging.error(f"Failed to prepare Apache config: {e}")

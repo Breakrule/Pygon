@@ -91,8 +91,9 @@ class BaseService(ABC):
         return False
 
     def get_base_folder(self) -> str:
-        """Gets the root folder for this service type (e.g. 'nginx'). Extracted from executable_path."""
-        return self.executable_path.split("/")[0] if "/" in self.executable_path else self.executable_path.split("\\")[0]
+        """Gets the root folder for this service type (e.g. 'apache')."""
+        # We derive it from the name to be more robust than using executable_path
+        return self.name.lower().split()[0]
 
     # Directories that are NOT version folders (internal service structure)
     _EXCLUDE_DIRS = {'bin', 'conf', 'data', 'docs', 'etc', 'html', 'include',
@@ -150,21 +151,27 @@ class BaseService(ABC):
         return version
             
     def get_actual_executable_path(self) -> str:
-        """Resolves the real executable path considering versions."""
-        std_path = os.path.join(self.bin_dir, self.executable_path)
-        if os.path.isfile(std_path) and not self.active_version:
-            return std_path
-            
-        exe_name = os.path.basename(self.executable_path)
+        """Resolves the real executable path strictly within a version subfolder."""
         base = self.get_base_folder()
         version_folder = self.active_version
         
+        # If no version is selected, try to pick the first available one
+        if not version_folder:
+            avail = self.get_available_versions()
+            if avail:
+                version_folder = avail[0]
+        
         if version_folder:
-            vers_path = os.path.join(self.bin_dir, base, version_folder, exe_name)
+            # We strip the service name prefix from executable_path if it exists
+            # (e.g. 'mysql/bin/mysqld.exe' -> 'bin/mysqld.exe')
+            rel_path = self.executable_path
+            
+            vers_path = os.path.join(self.bin_dir, base, version_folder, rel_path)
             if os.path.exists(vers_path):
                 return vers_path
                 
-        return std_path
+        # Last resort fallback to the raw path joined with bin_dir
+        return os.path.join(self.bin_dir, self.executable_path)
 
     def get_start_args(self) -> list:
         """Override to provide custom startup arguments."""
@@ -253,22 +260,25 @@ class BaseService(ABC):
             return False
 
     def stop(self) -> bool:
-        """Stops the service subprocess."""
+        """Stops the service subprocess and all its children."""
         if not self.process:
             return True
             
         try:
-            self.process.terminate()
-            self.process.wait(timeout=5)
+            if os.name == 'nt':
+                # On Windows, taskkill /F /T is the only reliable way to kill process trees
+                subprocess.run(['taskkill', '/F', '/T', '/PID', str(self.process.pid)], 
+                             capture_output=True, creationflags=subprocess.CREATE_NO_WINDOW)
+            else:
+                self.process.terminate()
+                try:
+                    self.process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    self.process.kill()
+            
             self.process = None
             self._reader_threads.clear()
             logging.info(f"Stopped {self.name}")
-            return True
-        except subprocess.TimeoutExpired:
-            logging.warning(f"{self.name} did not terminate gracefully. Killing...")
-            self.process.kill()
-            self.process = None
-            self._reader_threads.clear()
             return True
         except Exception as e:
             logging.error(f"Error stopping {self.name}: {e}")
@@ -284,9 +294,21 @@ class BaseService(ABC):
         """Returns recent log lines from stdout."""
         return list(self._log_buffer)
 
+    def get_new_logs(self) -> list:
+        """Returns all logs since last call and clears the buffer."""
+        logs = list(self._log_buffer)
+        self._log_buffer.clear()
+        return logs
+
     def get_errors(self) -> list:
         """Returns recent error lines from stderr."""
         return list(self._error_buffer)
+
+    def get_new_errors(self) -> list:
+        """Returns all errors since last call and clears the buffer."""
+        errs = list(self._error_buffer)
+        self._error_buffer.clear()
+        return errs
 
     def clear_logs(self):
         """Clears both log and error buffers."""

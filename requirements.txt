@@ -1,6 +1,5 @@
-customtkinter
+PyQt6
 psutil
-pystray
-Pillow
 pyyaml
 Jinja2
+requests

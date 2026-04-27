@@ -14,9 +14,12 @@ class AutoDownloader:
     # Download URLs for all services (Windows x64)
     URLS = {
         "apache":   "https://www.apachelounge.com/download/VS18/binaries/httpd-2.4.66-260223-Win64-VS18.zip",
-        "mysql":    "https://dev.mysql.com/get/Downloads/MySQL-8.4/mysql-8.4.3-winx64.zip",
+        "mysql":    "https://dev.mysql.com/get/Downloads/MySQL-8.0/mysql-8.0.36-winx64.zip",
+        "mysql-9.6": "https://dev.mysql.com/get/Downloads/MySQL-9.0/mysql-9.6.0-winx64.zip",
         "php":      "https://windows.php.net/downloads/releases/php-8.4.4-nts-Win32-vs17-x64.zip",
         "node":     "https://nodejs.org/dist/v20.20.0/node-v20.20.0-win-x64.zip",
+        "mariadb":  "https://archive.mariadb.org/mariadb-11.4.2/winx64-packages/mariadb-11.4.2-winx64.zip",
+        "heidisql": "https://www.heidisql.com/downloads/releases/HeidiSQL_12.8_64_Portable.zip",
     }
 
     # MySQL blocks standard browser User-Agents, but allows standard command line tools like curl.
@@ -53,32 +56,44 @@ class AutoDownloader:
                 if progress_callback and total_size:
                     progress_callback(block_num, block_size, total_size)
 
+    def _get_version_from_url(self, url: str) -> str:
+        """Heuristic to extract version number from URL or filename."""
+        import re
+        filename = url.split('/')[-1]
+        # Match patterns like 8.0.36, 11.4.2, 2.4.66
+        match = re.search(r'(\d+\.\d+\.\d+)', filename)
+        if match:
+            return match.group(1)
+        # Fallback for patterns like node-v20.20.0
+        match = re.search(r'v(\d+\.\d+\.\d+)', filename)
+        if match:
+            return match.group(1)
+        return "1.0.0"
+
     def download_and_extract(self, service_name: str, target_folder: str, progress_callback=None, status_callback=None) -> bool:
         """
-        Downloads a zip file from URLS[service_name] and extracts it to target_folder.
-        target_folder should be an absolute path to the service directory (e.g. bin/apache).
+        Downloads a zip file and extracts it to bin/service_name/version/.
         """
         if service_name not in self.URLS:
             logging.error(f"No download URL configured for {service_name}")
             return False
 
         url = self.URLS[service_name]
-        zip_path = os.path.join(self.bin_dir, f"{service_name}_download.zip")
+        version = self._get_version_from_url(url)
+        zip_path = os.path.join(self.bin_dir, f"{service_name}_{version}_download.zip")
 
-        # If target_folder is relative, join with bin_dir; if absolute, use as-is
-        if os.path.isabs(target_folder):
-            extract_path = target_folder
-        else:
-            extract_path = os.path.join(self.bin_dir, target_folder)
+        # Extraction path is now bin/service_name/version
+        # target_folder is usually just the service name (e.g. 'mysql')
+        service_base = os.path.join(self.bin_dir, target_folder)
+        extract_path = os.path.join(service_base, version)
 
         os.makedirs(extract_path, exist_ok=True)
 
         try:
             if status_callback:
-                status_callback("Connecting to download server...")
+                status_callback(f"Connecting to download {service_name} {version}...")
 
-            logging.info(f"Downloading {service_name} from {url}...")
-
+            logging.info(f"Downloading {service_name} version {version} from {url}...")
             self._download_file(url, zip_path, progress_callback=progress_callback)
 
             if status_callback:
@@ -92,14 +107,14 @@ class AutoDownloader:
             if os.path.exists(zip_path):
                 os.remove(zip_path)
 
-            # Post-extraction: flatten nested folders
+            # Post-extraction: flatten nested folders WITHIN the version folder
             self._flatten_extracted(service_name, extract_path)
 
             # Service-specific post-install patching
             if service_name == "apache":
                 self._patch_apache_config(extract_path)
 
-            logging.info(f"Successfully installed {service_name}")
+            logging.info(f"Successfully installed {service_name} {version}")
             return True
 
         except Exception as e:
@@ -125,6 +140,7 @@ class AutoDownloader:
             "mysql":   "mysql-",
             "php":     "php-",
             "node":    "node-",
+            "heidisql": "HeidiSQL",
         }
 
         prefix = prefix_patterns.get(service_name)
