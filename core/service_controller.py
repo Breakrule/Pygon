@@ -30,7 +30,16 @@ class ServiceController:
     def start_all(self):
         services = [s for s in self.registry.get_all_services() if self.config.get_service_enabled(s.name)]
         
+        from core.port_monitor import PortMonitor
         for s in services:
+            if not s.is_running() and PortMonitor.is_port_in_use(s.current_port):
+                proc = PortMonitor.get_process_using_port(s.current_port)
+                msg = f"Port {s.current_port} is already in use by another process."
+                if proc:
+                    msg = f"Port {s.current_port} is already in use by '{proc['name']}' (PID: {proc['pid']})."
+                QMessageBox.critical(None, "Port Conflict", f"Cannot start {s.name}.\n\n{msg}")
+                continue
+
             if not s.is_installed:
                 dl_key = s.get_base_folder()
                 if dl_key in self.downloader.URLS:
@@ -51,7 +60,7 @@ class ServiceController:
         dg.generate()
 
         for s in services:
-            if s.is_installed:
+            if s.is_installed and not PortMonitor.is_port_in_use(s.current_port):
                 s.start()
         
         self.is_running = True
@@ -67,6 +76,15 @@ class ServiceController:
             service.stop()
             self.append_console("Console", f"[STOP] {service.name}")
         else:
+            from core.port_monitor import PortMonitor
+            if PortMonitor.is_port_in_use(service.current_port):
+                proc = PortMonitor.get_process_using_port(service.current_port)
+                msg = f"Port {service.current_port} is already in use by another process."
+                if proc:
+                    msg = f"Port {service.current_port} is already in use by '{proc['name']}' (PID: {proc['pid']})."
+                QMessageBox.critical(None, "Port Conflict", f"Cannot start {service.name}.\n\n{msg}")
+                return
+
             if not service.is_installed:
                 dl_key = service.get_base_folder()
                 if dl_key in self.downloader.URLS:

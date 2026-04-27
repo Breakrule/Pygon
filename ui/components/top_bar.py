@@ -3,12 +3,13 @@ from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont
 
 class TopBar(QWidget):
-    def __init__(self, parent, colors, app_name, on_open_settings, on_open_shell, on_profile_change):
+    def __init__(self, parent, colors, app_name, on_open_settings, on_open_shell, on_profile_change, on_add_profile):
         super().__init__(parent)
         self.colors = colors
         self.on_open_settings = on_open_settings
         self.on_open_shell = on_open_shell
         self.on_profile_change = on_profile_change
+        self.on_add_profile = on_add_profile
         
         self.setFixedHeight(70)
         self.setObjectName("TopBar")
@@ -34,6 +35,12 @@ class TopBar(QWidget):
         self.profile_combo.currentTextChanged.connect(self.on_profile_change)
         layout.addWidget(self.profile_combo)
         
+        self.add_profile_btn = QPushButton("+")
+        self.add_profile_btn.setFixedSize(30, 36)
+        self.add_profile_btn.setToolTip("Create new profile from current state")
+        self.add_profile_btn.clicked.connect(self._on_add_profile_clicked)
+        layout.addWidget(self.add_profile_btn)
+        
         # Shell Button
         self.shell_btn = QPushButton("💻  Shell")
         self.shell_btn.setMinimumWidth(120)
@@ -52,3 +59,7 @@ class TopBar(QWidget):
         self.settings_btn.clicked.connect(self.on_open_settings)
         self.settings_btn.setStyleSheet("padding: 0px; text-align: center;")
         layout.addWidget(self.settings_btn)
+
+    def _on_add_profile_clicked(self):
+        if self.on_add_profile:
+            self.on_add_profile()

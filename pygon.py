@@ -4,10 +4,11 @@ import threading
 import ctypes
 import subprocess
 from PyQt6.QtWidgets import (
-    QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
+    QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QPushButton, QScrollArea, QFrame, QMessageBox, QDialog,
     QTabWidget, QCheckBox, QFileDialog, QProgressBar, QMenu,
-    QSplitter, QSpinBox, QLineEdit, QRadioButton, QButtonGroup
+    QSplitter, QSpinBox, QLineEdit, QRadioButton, QButtonGroup,
+    QInputDialog
 )
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QFont, QCursor, QAction, QIcon, QPixmap
@@ -82,7 +83,7 @@ class PygonApp(BaseWindow):
 
     def _build_ui(self):
         # Top Bar
-        self.top_bar = TopBar(self, self.colors, APP_NAME, self._open_settings, self._on_open_shell, self._on_profile_change)
+        self.top_bar = TopBar(self, self.colors, APP_NAME, self._open_settings, self._on_open_shell, self._on_profile_change, self._on_add_profile)
         self.main_layout.addWidget(self.top_bar)
         
         # Populate Profiles
@@ -237,6 +238,14 @@ class PygonApp(BaseWindow):
                 if svc.name in self.cards:
                     self.cards[svc.name].update_status()
             self.append_log(f"Switched to profile: {profile_name}")
+
+    def _on_add_profile(self):
+        name, ok = QInputDialog.getText(self, "New Profile", "Enter profile name:")
+        if ok and name:
+            self.config.save_profile(name)
+            self.top_bar.profile_combo.addItem(name)
+            self.top_bar.profile_combo.setCurrentText(name)
+            self.append_log(f"Created new profile: {name}")
 
     def _poll_logs(self):
         try:
