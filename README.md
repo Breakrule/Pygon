@@ -1,73 +1,65 @@
-# ⚡ Pygon
+# ⚡ Pygon v3.1: Neon Dark Mode
 
-**Pygon** is a lightweight, modern, and high-performance local development environment manager for Windows. Built with Python and CustomTkinter, it serves as a powerful alternative to XAMPP or Laragon, providing a seamless GUI to manage your web development stack.
+**Pygon** is a lightweight, portable, and visually stunning local development suite for Windows. Designed for speed and aesthetic excellence, it provides a high-performance alternative to XAMPP and Laragon with a sleek Cyberpunk-inspired interface.
 
-![Pygon Preview](https://via.placeholder.com/1200x600?text=Pygon+Local+Development+Environment)
+![Pygon Banner](https://raw.githubusercontent.com/Breakrule/Pygon/main/dist/preview.png)
 
-## 🚀 Features
+## 🌌 The Neon Experience
+Pygon v3.1 introduces a complete UI overhaul focused on **Neon Dark Mode**. Built with **PyQt6**, the interface features an Obsidian-black foundation with vibrant Cyan, Green, and Pink accents, delivering a state-of-the-art developer workspace.
 
-- **Dynamic VHosts**: Automatically detects directories in your `www/` root and generates Nginx/Apache virtual host configurations.
-- **Local SSL**: Integrated `mkcert` support to generate locally-trusted SSL certificates for `.test` domains.
-- **Service Management**: One-click control for:
-  - **Web Servers**: Nginx, Apache
-  - **Languages**: PHP (multi-version support), Node.js
-  - **Databases**: MySQL, PostgreSQL
-  - **Tools**: Redis, Mailpit
-- **Auto-Downloader**: Missing service binaries are automatically fetched and configured on demand.
-- **System Monitoring**: Real-time CPU, RAM, and Disk usage tracking.
-- **Portable Design**: Designed to be portable and lightweight.
+## 🚀 Key Features
+
+- **Portable Core**: Single standalone executable. Move your development environment anywhere on a USB drive.
+- **Service Mastery**: One-click control for your entire stack:
+  - **Web Servers**: Apache, Nginx
+  - **Languages**: PHP (Seamless version switching), Node.js (Integrated NPM support)
+  - **Databases**: MySQL 8.x/9.x, MariaDB
+  - **Tools**: Mailpit, HeidiSQL integration
+- **Smart Pathing**: Automatically resolves service binaries and manages configurations dynamically.
+- **Auto-Downloader**: Missing a service? Pygon fetches the binaries and sets them up for you instantly.
+- **Local SSL**: One-click `mkcert` integration to generate locally-trusted SSL certificates for HTTPS development.
+- **VHost Management**: Automatic virtual host generation and host file editing.
 
 ## 🛠️ Tech Stack
 
-- **Core**: Python 3.x
-- **UI**: [CustomTkinter](https://github.com/TomSchimansky/CustomTkinter)
-- **Utilities**: `psutil`, `jinja2`, `pyyaml`
-- **SSL**: `mkcert`
+- **Core Engine**: Python 3.14
+- **Interface**: PyQt6 (Obsidian Neon Theme)
+- **Service Logic**: Custom Process Management with automatic orphaned process cleanup.
+- **SSL Stack**: mkcert integration
 
-## 📦 Installation
+## 📦 Installation & Usage
 
-1. **Clone the repository**:
+### The Easy Way (Recommended)
+1. Download the latest [Pygon Release](https://github.com/Breakrule/Pygon/releases).
+2. Extract the ZIP to your desired folder.
+3. Run `Pygon.exe`.
+
+### Running from Source
+1. **Clone & Setup**:
    ```bash
    git clone https://github.com/Breakrule/Pygon.git
    cd Pygon
-   ```
-
-2. **Set up the environment**:
-   ```bash
-   python -m venv .venv
-   .venv\Scripts\activate
    pip install -r requirements.txt
    ```
-
-3. **Initialize Configuration**:
-   Copy the example config to create your local settings:
-   ```powershell
-   copy config.yaml.example config.yaml
-   ```
-
-4. **Launch Pygon**:
+2. **Launch**:
    ```bash
    python pygon.py
    ```
 
-## 📂 Project Structure
+## 📂 Structure
+- `bin/`: Stores service binaries (e.g., `/apache/2.4.66/`, `/php/8.3.4/`).
+- `www/`: Your web projects directory.
+- `core/`: High-performance service controllers and system utilities.
+- `ui/`: Modern PyQt6 component library.
 
-- `pygon.py`: Main application entry point.
-- `core/`: Internal logic for host management, SSL, and process control.
-- `services/`: Service-specific definitions and wrappers.
-- `www/`: Your local web projects go here.
-- `bin/`: (Ignored by Git) Where service binaries are downloaded.
-
-## 🛡️ Security Note
-
+## 🛡️ Requirements
 Pygon requires **Administrative Privileges** to:
-- Edit the Windows `hosts` file.
-- Install the Local CA for SSL.
-- Bind services to protected ports (e.g., 80, 443).
+- Edit the Windows `hosts` file for custom domains.
+- Install the Local CA for SSL certificates.
+- Bind services to protected ports (80, 443).
 
 ## 📄 License
-
-Distributed under the MIT License. See `LICENSE` for more information.
+Distributed under the MIT License.
 
 ---
-**Developed with ❤️ by Breakrule**
+**Developed with ❤️ by [Breakrule](https://github.com/Breakrule)**
