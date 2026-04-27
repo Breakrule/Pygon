@@ -29,41 +29,62 @@ class TrayManager:
         """Initializes and shows the system tray icon."""
         self.tray_icon.setIcon(self.create_icon())
         
-        # Menu
-        menu = QMenu()
+        self.menu = QMenu()
+        self.menu.aboutToShow.connect(self._rebuild_menu)
         
-        show_action = menu.addAction("Show Dashboard")
+        self.tray_icon.setContextMenu(self.menu)
+        self.tray_icon.activated.connect(self._on_activated)
+        self.tray_icon.show()
+
+    def _rebuild_menu(self):
+        """Dynamic menu generation based on current service states."""
+        self.menu.clear()
+        
+        show_action = self.menu.addAction("Show Dashboard")
         show_action.triggered.connect(self.on_show)
         
-        menu.addSeparator()
+        self.menu.addSeparator()
         
-        # List services (read-only info)
+        # ── Service Control Submenus ──────────────────────────────────
         for service in self.app.registry.get_all_services():
-            item = menu.addAction(f"{service.name} (Port {service.default_port})")
-            item.setEnabled(False)
+            is_running = service.is_running()
+            status_dot = "●" if is_running else "○"
+            svc_menu = self.menu.addMenu(f"{status_dot} {service.name}")
             
-        menu.addSeparator()
+            toggle_text = "Stop Service" if is_running else "Start Service"
+            toggle_act = svc_menu.addAction(toggle_text)
+            toggle_act.triggered.connect(lambda checked, s=service: self.app.controller.toggle_single(s))
+            
+            if is_running:
+                restart_act = svc_menu.addAction("Restart Service")
+                restart_act.triggered.connect(lambda checked, s=service: self.app.controller.restart_service(s))
+            
+            svc_menu.addSeparator()
+            
+            # Config & Logs
+            log_act = svc_menu.addAction("View Logs")
+            log_act.triggered.connect(lambda checked, s=service: s.open_error_log())
+            
+            conf_act = svc_menu.addAction("Edit Config")
+            conf_act.triggered.connect(lambda checked, s=service: s.open_conf())
+
+        self.menu.addSeparator()
         
-        start_all = menu.addAction("Start All")
+        start_all = self.menu.addAction("▶  Start All Services")
         start_all.triggered.connect(self.on_start_all)
         
-        stop_all = menu.addAction("Stop All")
+        stop_all = self.menu.addAction("⏹  Stop All Services")
         stop_all.triggered.connect(self.on_stop_all)
         
-        open_www = menu.addAction("Open Web Root")
+        self.menu.addSeparator()
+        
+        open_www = self.menu.addAction("📁  Open Web Root (www)")
         open_www.triggered.connect(self.on_open_www)
         
-        menu.addSeparator()
+        self.menu.addSeparator()
         
-        quit_action = menu.addAction("Quit Pygon")
+        quit_action = self.menu.addAction("Exit Pygon")
         quit_action.triggered.connect(self.on_quit)
-        
-        self.tray_icon.setContextMenu(menu)
-        
-        # Double click to show
-        self.tray_icon.activated.connect(self._on_activated)
-        
-        self.tray_icon.show()
 
     def _on_activated(self, reason):
         if reason == QSystemTrayIcon.ActivationReason.DoubleClick:
@@ -71,7 +92,7 @@ class TrayManager:
 
     def on_show(self):
         self.app.show()
-        self.app.setWindowState(self.app.windowState() & ~Qt.WindowState.WindowMinimized | Qt.WindowState.WindowActive)
+        self.app.raise_()
         self.app.activateWindow()
 
     def on_start_all(self):

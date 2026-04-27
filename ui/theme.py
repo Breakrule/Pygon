@@ -149,9 +149,9 @@ def generate_qss(colors: dict) -> str:
         QPlainTextEdit, QTextEdit, QLineEdit, QSpinBox {{
             background-color: {colors['console_bg']};
             color: {colors['accent']};
-            border: 1px solid {colors['border']};
+            border: 1px solid {colors['accent']};
             border-radius: 8px;
-            padding: 8px;
+            padding: 6px 12px;
             font-family: 'Consolas', 'Courier New';
             selection-background-color: {colors['accent']};
             selection-color: black;

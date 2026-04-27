@@ -12,11 +12,11 @@ class ServiceCard(QFrame):
         self.on_db_manager = on_db_manager
         
         self.setObjectName("ServiceCard")
-        self.setFixedHeight(60)
+        self.setMinimumHeight(85)
         
         self.layout = QHBoxLayout(self)
-        self.layout.setContentsMargins(12, 0, 10, 0)
-        self.layout.setSpacing(10)
+        self.layout.setContentsMargins(15, 8, 15, 8)
+        self.layout.setSpacing(12)
         
         self._build_card()
 
@@ -38,15 +38,15 @@ class ServiceCard(QFrame):
         # Icon Frame (Badge)
         icon_color = getattr(self.service, 'icon_color', self.colors["accent"])
         self.icon_frame = QFrame()
-        self.icon_frame.setFixedSize(40, 40)
-        self.icon_frame.setStyleSheet(f"background-color: {icon_color}; border-radius: 20px;") # Circle
+        self.icon_frame.setFixedSize(46, 46)
+        self.icon_frame.setStyleSheet(f"background-color: {icon_color}; border-radius: 23px;") # Circle
         
         icon_layout = QVBoxLayout(self.icon_frame)
         icon_layout.setContentsMargins(0, 0, 0, 0)
         
         self.icon_lbl = QLabel(self._get_service_badge())
         self.icon_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.icon_lbl.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
+        self.icon_lbl.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
         self.icon_lbl.setStyleSheet("color: white; background: transparent;")
         icon_layout.addWidget(self.icon_lbl)
         
@@ -54,17 +54,23 @@ class ServiceCard(QFrame):
         
         # Name & Port
         info_layout = QVBoxLayout()
-        info_layout.setSpacing(0)
-        info_layout.setContentsMargins(0, 8, 0, 8)
+        info_layout.setSpacing(2)
+        info_layout.setContentsMargins(5, 5, 5, 5)
         
         self.name_lbl = QLabel(self.service.name)
-        self.name_lbl.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
+        self.name_lbl.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
         info_layout.addWidget(self.name_lbl)
         
         self.port_lbl = QLabel(f"Port: {self.service.current_port}")
         self.port_lbl.setObjectName("DimText")
-        self.port_lbl.setFont(QFont("Segoe UI", 9))
+        self.port_lbl.setFont(QFont("Segoe UI", 10))
         info_layout.addWidget(self.port_lbl)
+        
+        self.metrics_lbl = QLabel("")
+        self.metrics_lbl.setObjectName("DimText")
+        self.metrics_lbl.setFont(QFont("Segoe UI", 9, QFont.Weight.Medium))
+        self.metrics_lbl.setStyleSheet(f"color: {self.colors['accent']};")
+        info_layout.addWidget(self.metrics_lbl)
         
         self.layout.addLayout(info_layout)
         self.layout.addStretch()
@@ -73,8 +79,8 @@ class ServiceCard(QFrame):
         versions = self.service.get_available_versions()
         if versions:
             self.dropdown = QComboBox()
-            self.dropdown.setFixedWidth(80)
-            self.dropdown.setFixedHeight(28)
+            self.dropdown.setMinimumWidth(110)
+            self.dropdown.setFixedHeight(32)
             self.dropdown.setToolTip("Switch between installed versions")
             
             display_versions = [self.service.get_version_display(v) for v in versions]
@@ -90,7 +96,8 @@ class ServiceCard(QFrame):
         # Toggle Button
         self.toggle_btn = QPushButton("START")
         self.toggle_btn.setObjectName("AccentButton")
-        self.toggle_btn.setFixedSize(90, 36)
+        self.toggle_btn.setMinimumWidth(100)
+        self.toggle_btn.setFixedHeight(40)
         self.toggle_btn.setToolTip("Start or Stop this service")
         self.toggle_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.toggle_btn.clicked.connect(lambda: self.on_toggle(self.service))
@@ -99,7 +106,7 @@ class ServiceCard(QFrame):
         # Menu Button
         self.menu_btn = QPushButton("⋮")
         self.menu_btn.setObjectName("MenuButton")
-        self.menu_btn.setFixedSize(36, 36)
+        self.menu_btn.setFixedSize(40, 40)
         self.menu_btn.setToolTip("Service actions and configurations")
         self.menu_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.menu_btn.clicked.connect(lambda: self.on_menu(self.service, self.menu_btn))
@@ -128,3 +135,11 @@ class ServiceCard(QFrame):
 
     def contextMenuEvent(self, event):
         self.on_menu(self.service, self)
+
+    def update_metrics(self, cpu_val, mem_val):
+        if cpu_val == 0 and mem_val == 0:
+            self.metrics_lbl.setText("")
+        else:
+            # Convert bytes to MB
+            mem_mb = mem_val / (1024 * 1024)
+            self.metrics_lbl.setText(f"CPU: {cpu_val:.1f}% | RAM: {mem_mb:.1f}MB")

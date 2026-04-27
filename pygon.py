@@ -10,10 +10,10 @@ from PyQt6.QtWidgets import (
     QSplitter, QSpinBox, QLineEdit, QRadioButton, QButtonGroup
 )
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
-from PyQt6.QtGui import QFont, QCursor, QAction
+from PyQt6.QtGui import QFont, QCursor, QAction, QIcon, QPixmap
 
 # Core Imports
-from core.constants import APP_NAME, BIN_DIR, WWW_DIR, VHOST_CONF_DIR
+from core.constants import APP_NAME, BIN_DIR, WWW_DIR, VHOST_CONF_DIR, BASE_DIR
 from core.config_manager import ConfigManager
 from core.service_controller import ServiceController
 from core.system_utils import SystemUtils
@@ -22,7 +22,6 @@ from core.host_manager import HostManager
 from core.tray import TrayManager
 from core.mkcert_manager import MkcertManager
 from core.downloader import AutoDownloader
-from core.version_checker import VersionChecker
 from services.registry import ServiceRegistry
 
 # UI Imports
@@ -30,6 +29,8 @@ from ui.base_window import BaseWindow
 from ui.components.top_bar import TopBar
 from ui.components.service_card import ServiceCard
 from ui.components.console_panel import ConsolePanel
+from ui.dialogs.settings_dialog import SettingsDialog
+from ui.dialogs.download_dialog import DownloadDialog
 
 class PygonApp(BaseWindow):
     def __init__(self):
@@ -54,9 +55,14 @@ class PygonApp(BaseWindow):
         super().__init__(theme_name=self.config.get_theme())
 
         # 5. Final Setup
-        self.setWindowTitle(f"{APP_NAME} v3.0")
+        self.setWindowTitle(f"{APP_NAME} v4.0")
         self.resize(1100, 700)
         self.setMinimumSize(900, 600)
+        
+        # Logo
+        logo_path = os.path.join(os.path.dirname(__file__), "assets", "logo.png")
+        if os.path.exists(logo_path):
+            self.setWindowIcon(QIcon(logo_path))
 
         # 6. System tray
         self.tray = TrayManager(self)
@@ -64,11 +70,25 @@ class PygonApp(BaseWindow):
 
         # 7. Start loops (Qt Timers)
         self._start_update_loops()
+        
+        # 8. Apply Startup Settings
+        if self.config.get_general("autostart_all", False):
+            # Delay start to ensure UI is ready
+            QTimer.singleShot(1000, self._on_toggle_all)
+            
+        if self.config.get_general("run_minimized", False):
+            # Hide to tray if possible
+            QTimer.singleShot(100, self.hide)
 
     def _build_ui(self):
         # Top Bar
-        self.top_bar = TopBar(self, self.colors, APP_NAME, self._open_settings, self._on_check_updates)
+        self.top_bar = TopBar(self, self.colors, APP_NAME, self._open_settings, self._on_open_shell, self._on_profile_change)
         self.main_layout.addWidget(self.top_bar)
+        
+        # Populate Profiles
+        profiles = self.config.get_profiles()
+        for p_name in profiles.keys():
+            self.top_bar.profile_combo.addItem(p_name)
 
         # Main Splitter
         self.splitter = QSplitter(Qt.Orientation.Vertical)
@@ -151,9 +171,9 @@ class PygonApp(BaseWindow):
         self.ui_timer.timeout.connect(self._update_ui_state)
         self.ui_timer.start(2000)
 
-        # self.metrics_timer = QTimer(self)
-        # self.metrics_timer.timeout.connect(self._update_system_metrics)
-        # self.metrics_timer.start(3000)
+        self.metrics_timer = QTimer(self)
+        self.metrics_timer.timeout.connect(self._update_service_metrics)
+        self.metrics_timer.start(3000)
 
         self.logs_timer = QTimer(self)
         self.logs_timer.timeout.connect(self._poll_logs)
@@ -183,9 +203,40 @@ class PygonApp(BaseWindow):
         except (RuntimeError, AttributeError):
             pass # Widget was likely deleted during theme switch
 
-    def _update_system_metrics(self):
-        # System info panel removed in v3.1
-        pass
+    def _update_service_metrics(self):
+        try:
+            for svc in self.registry.get_all_services():
+                if svc.is_running() and svc.process:
+                    cpu, mem = SystemUtils.get_process_metrics(svc.process.pid)
+                    if svc.name in self.cards:
+                        self.cards[svc.name].update_metrics(cpu, mem)
+                else:
+                    if svc.name in self.cards:
+                        self.cards[svc.name].update_metrics(0, 0)
+        except (RuntimeError, AttributeError):
+            pass
+
+    def _on_open_shell(self):
+        SystemUtils.launch_pygon_shell(self.registry)
+
+    def _on_profile_change(self, profile_name):
+        if profile_name == "Default Profile":
+            # For now, Default just means current state.
+            return
+            
+        from PyQt6.QtWidgets import QMessageBox
+        reply = QMessageBox.question(self, "Switch Profile", 
+                                   f"Switch to profile '{profile_name}'? This will stop all current services.",
+                                   QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            self.controller.stop_all()
+            self.config.load_profile(profile_name)
+            # Update all service cards
+            for svc in self.registry.get_all_services():
+                if svc.name in self.cards:
+                    self.cards[svc.name].update_status()
+            self.append_log(f"Switched to profile: {profile_name}")
 
     def _poll_logs(self):
         try:
@@ -204,6 +255,7 @@ class PygonApp(BaseWindow):
             if item.widget(): item.widget().deleteLater()
             
         for svc in self.registry.get_all_services():
+            if "mariadb" in svc.name.lower(): continue
             running = svc.is_running()
             color = self.colors["accent"] if running else self.colors["text_dim"]
             text = f"● {svc.name.split()[0]}: {'Online' if running else 'Offline'}"
@@ -306,7 +358,10 @@ class PygonApp(BaseWindow):
     def _handle_menu_action(self, action, service):
         if not action: return
         if action == 'restart': self.controller.restart_service(service)
-        elif action == 'open_folder': os.startfile(os.path.join(BIN_DIR, service.get_base_folder()))
+        elif action == 'open_folder': 
+            path = os.path.join(BIN_DIR, service.get_base_folder())
+            if os.path.exists(path): os.startfile(path)
+            else: QMessageBox.warning(self, "Error", f"Folder not found: {path}")
         elif action == 'open_docroot': os.startfile(WWW_DIR)
         elif action == 'open_conf': 
             paths = self._get_conf_paths(service)
@@ -341,234 +396,12 @@ class PygonApp(BaseWindow):
         return []
 
     def _open_settings(self):
-        dialog = QDialog(self)
-        dialog.setWindowTitle("Preferences")
-        dialog.setFixedSize(600, 500)
-        
-        layout = QVBoxLayout(dialog)
-        tabs = QTabWidget()
-        layout.addWidget(tabs)
-        
-        # 1. General Tab
-        gen = QWidget()
-        gen_layout = QVBoxLayout(gen)
-        gen_layout.setContentsMargins(20, 20, 20, 20)
-        gen_layout.setSpacing(15)
-
-        # Startup
-        startup_check = QCheckBox("Run Pygon on Windows startup")
-        startup_check.setChecked(self.config.get_general("run_on_startup", False))
-        startup_check.toggled.connect(lambda v: (self.config.set_general("run_on_startup", v), SystemUtils.apply_startup_setting(v)))
-        gen_layout.addWidget(startup_check)
-
-        # Document Root
-        doc_root_layout = QHBoxLayout()
-        doc_root_layout.addWidget(QLabel("Document Root:"))
-        self.doc_root_edit = QLineEdit(self.config.get_general("document_root", WWW_DIR))
-        self.doc_root_edit.setReadOnly(True)
-        doc_root_layout.addWidget(self.doc_root_edit)
-        browse_btn = QPushButton("Browse")
-        browse_btn.clicked.connect(self._on_browse_docroot)
-        doc_root_layout.addWidget(browse_btn)
-        gen_layout.addLayout(doc_root_layout)
-
-        # Close Behavior
-        gen_layout.addWidget(QLabel("When closing window:"))
-        bg = QButtonGroup(gen)
-        cb = self.config.get_close_behavior()
-        for i, (label, val) in enumerate([("Ask me", "ask"), ("Minimize to Tray", "tray"), ("Exit & Kill", "exit")]):
-            rb = QRadioButton(label)
-            if cb == val: rb.setChecked(True)
-            rb.toggled.connect(lambda v, x=val: v and self.config.set_close_behavior(x))
-            gen_layout.addWidget(rb)
-            bg.addButton(rb, i)
-
-        gen_layout.addStretch()
-        tabs.addTab(gen, "General")
-        
-        # 2. Services Tab
-        svc_tab = QWidget()
-        svc_scroll = QScrollArea()
-        svc_scroll.setWidgetResizable(True)
-        svc_scroll.setFrameShape(QFrame.Shape.NoFrame)
-        svc_content = QWidget()
-        svc_layout = QVBoxLayout(svc_content)
-        svc_layout.setContentsMargins(10, 10, 10, 10)
-        svc_layout.setSpacing(10)
-
-        for svc in self.registry.get_all_services():
-            row = QFrame()
-            row.setFrameStyle(QFrame.Shape.StyledPanel)
-            row.setStyleSheet(f"border: 1px solid {self.colors['border']}; border-radius: 8px; padding: 10px;")
-            h = QHBoxLayout(row)
-            h.setContentsMargins(15, 5, 15, 5)
-            
-            enable_check = QCheckBox(svc.name)
-            enable_check.setFont(QFont("Segoe UI", 10, QFont.Weight.Medium))
-            enable_check.setChecked(self.config.get_service_enabled(svc.name))
-            enable_check.toggled.connect(lambda v, s=svc.name: (self.config.set_service_enabled(s, v), self._rebuild_ui()))
-            h.addWidget(enable_check, 2)
-
-            h.addStretch(1)
-            h.addWidget(QLabel("Port:"), 0)
-            port_spin = QSpinBox()
-            port_spin.setFixedWidth(100)
-            port_spin.setRange(1, 65535)
-            port_spin.setValue(svc.current_port)
-            port_spin.valueChanged.connect(lambda v, s=svc.name: self.config.set_service_port(s, v))
-            h.addWidget(port_spin, 1)
-
-            svc_layout.addWidget(row)
-
-        svc_layout.addStretch()
-        svc_scroll.setWidget(svc_content)
-        svc_tab_layout = QVBoxLayout(svc_tab)
-        svc_tab_layout.addWidget(svc_scroll)
-        tabs.addTab(svc_tab, "Services")
-
-        # 3. About Tab
-        about = QWidget()
-        about_layout = QVBoxLayout(about)
-        about_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        
-        logo_lbl = QLabel("⚡")
-        logo_lbl.setFont(QFont("Segoe UI", 48))
-        about_layout.addWidget(logo_lbl)
-        
-        title_lbl = QLabel(f"{APP_NAME} v3.1")
-        title_lbl.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
-        about_layout.addWidget(title_lbl)
-        
-        about_layout.addWidget(QLabel("Modular Development Environment for Windows"))
-        about_layout.addWidget(QLabel("Build with PyQt6 & Python"))
-        about_layout.addStretch()
-        
-        tabs.addTab(about, "About")
-        
-        footer = QHBoxLayout()
-        footer.addStretch()
-        close_btn = QPushButton("Done")
-        close_btn.setObjectName("AccentButton")
-        close_btn.setFixedSize(100, 36)
-        close_btn.clicked.connect(dialog.accept)
-        footer.addWidget(close_btn)
-        layout.addLayout(footer)
-        
-        dialog.exec()
-
-    def _on_browse_docroot(self):
-        p = QFileDialog.getExistingDirectory(self, "Select Document Root")
-        if p:
-            self.config.set_general("document_root", p)
-            self.doc_root_edit.setText(p)
-
-    def _on_check_updates(self):
-        """Checks for latest versions of services in the background."""
-        self.top_bar.update_btn.setEnabled(False)
-        self.top_bar.update_btn.setText("⏳ Checking...")
-        
-        def run():
-            services = [s.name for s in self.registry.get_all_services()]
-            latest = VersionChecker.check_all(services)
-            
-            # Use QTimer to bring results back to UI thread
-            QTimer.singleShot(0, lambda: self._show_update_results(latest))
-            
-        threading.Thread(target=run, daemon=True).start()
-
-    def _show_update_results(self, latest):
-        self.top_bar.update_btn.setEnabled(True)
-        self.top_bar.update_btn.setText("🔄  Check Updates")
-        
-        dialog = QDialog(self)
-        dialog.setWindowTitle("Service Updates")
-        dialog.setFixedSize(500, 400)
-        
-        layout = QVBoxLayout(dialog)
-        layout.setContentsMargins(20, 20, 20, 20)
-        
-        title = QLabel("Available Updates")
-        title.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
-        layout.addWidget(title)
-        
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        content = QWidget()
-        list_layout = QVBoxLayout(content)
-        
-        for svc_name, latest_ver in latest.items():
-            if latest_ver == "N/A": continue
-            
-            svc = next((s for s in self.registry.get_all_services() if s.name == svc_name), None)
-            current_ver = svc.active_version if svc else "None"
-            
-            row = QFrame()
-            row.setStyleSheet(f"border-bottom: 1px solid {self.colors['border']}; padding: 10px;")
-            h = QHBoxLayout(row)
-            
-            name_lbl = QLabel(svc_name)
-            name_lbl.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
-            h.addWidget(name_lbl, 2)
-            
-            ver_layout = QVBoxLayout()
-            curr_lbl = QLabel(f"Current: {current_ver}")
-            curr_lbl.setObjectName("DimText")
-            new_lbl = QLabel(f"Latest: {latest_ver}")
-            
-            # Highlight if update available
-            if latest_ver != "Error" and latest_ver != current_ver:
-                new_lbl.setStyleSheet(f"color: {self.colors['accent']}; font-weight: bold;")
-            
-            ver_layout.addWidget(curr_lbl)
-            ver_layout.addWidget(new_lbl)
-            h.addLayout(ver_layout, 2)
-            
-            if latest_ver != current_ver and latest_ver != "Error":
-                dl_btn = QPushButton("Update")
-                dl_btn.setObjectName("AccentButton")
-                dl_btn.setFixedSize(80, 28)
-                # Note: Triggering update would need version-specific download logic
-                dl_btn.clicked.connect(lambda _, n=svc_name: QMessageBox.information(dialog, "Update", f"Download for {n} version {latest_ver} started."))
-                h.addWidget(dl_btn, 1)
-            else:
-                status_lbl = QLabel("✅ Latest")
-                status_lbl.setStyleSheet(f"color: {self.colors['text_dim']};")
-                h.addWidget(status_lbl, 1)
-                
-            list_layout.addWidget(row)
-            
-        list_layout.addStretch()
-        scroll.setWidget(content)
-        layout.addWidget(scroll)
-        
-        close_btn = QPushButton("Close")
-        close_btn.clicked.connect(dialog.accept)
-        layout.addWidget(close_btn, alignment=Qt.AlignmentFlag.AlignCenter)
-        
-        dialog.exec()
+        SettingsDialog(self, self.config, self.registry, self.colors, self._rebuild_ui).exec()
 
     def _run_download_with_ui(self, name, key, target):
-        dialog = QDialog(self)
-        dialog.setWindowTitle("Download")
-        dialog.setFixedSize(400, 180)
-        layout = QVBoxLayout(dialog)
-        
-        lbl = QLabel(f"Downloading {name}...")
-        lbl.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
-        layout.addWidget(lbl, alignment=Qt.AlignmentFlag.AlignCenter)
-        
-        bar = QProgressBar()
-        bar.setRange(0, 0)
-        layout.addWidget(bar)
-        
-        res = [False]
-        def run():
-            res[0] = self.downloader.download_and_extract(key, target)
-            QTimer.singleShot(0, dialog.accept)
-            
-        threading.Thread(target=run, daemon=True).start()
-        dialog.exec()
-        return res[0]
+        dlg = DownloadDialog(self, self.downloader, name, key, target)
+        dlg.exec()
+        return dlg.success
 
     def _open_db_manager(self, service=None):
         """Launches HeidiSQL for database services."""

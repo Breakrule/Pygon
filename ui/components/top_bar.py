@@ -1,41 +1,52 @@
-from PyQt6.QtWidgets import QWidget, QHBoxLayout, QLabel, QPushButton, QFrame
+from PyQt6.QtWidgets import QWidget, QHBoxLayout, QLabel, QPushButton, QFrame, QComboBox
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont
 
 class TopBar(QWidget):
-    def __init__(self, parent, colors, app_name, on_open_settings, on_check_updates):
+    def __init__(self, parent, colors, app_name, on_open_settings, on_open_shell, on_profile_change):
         super().__init__(parent)
         self.colors = colors
         self.on_open_settings = on_open_settings
-        self.on_check_updates = on_check_updates
+        self.on_open_shell = on_open_shell
+        self.on_profile_change = on_profile_change
         
-        self.setFixedHeight(60)
+        self.setFixedHeight(70)
         self.setObjectName("TopBar")
         
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(20, 0, 20, 0)
-        layout.setSpacing(10)
+        layout.setContentsMargins(25, 0, 25, 0)
+        layout.setSpacing(15)
         
         # Left — Title
         self.title_lbl = QLabel(app_name)
-        self.title_lbl.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
-        self.title_lbl.setStyleSheet(f"color: {colors['accent']}; letter-spacing: 1px;")
+        self.title_lbl.setFont(QFont("Segoe UI", 20, QFont.Weight.Bold))
+        self.title_lbl.setStyleSheet(f"color: {colors['accent']}; letter-spacing: 1.2px;")
         layout.addWidget(self.title_lbl)
         
         layout.addStretch()
+
+        # Profile Selector
+        self.profile_combo = QComboBox()
+        self.profile_combo.setMinimumWidth(160)
+        self.profile_combo.setFixedHeight(36)
+        self.profile_combo.setToolTip("Switch between service profiles")
+        self.profile_combo.addItem("Default Profile")
+        self.profile_combo.currentTextChanged.connect(self.on_profile_change)
+        layout.addWidget(self.profile_combo)
         
-        # Check Updates
-        self.update_btn = QPushButton("🔄  Check Updates")
-        self.update_btn.setFixedSize(150, 40)
-        self.update_btn.setToolTip("Check for new versions of MySQL, PHP, and Node.js")
-        self.update_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.update_btn.clicked.connect(self.on_check_updates)
-        layout.addWidget(self.update_btn)
+        # Shell Button
+        self.shell_btn = QPushButton("💻  Shell")
+        self.shell_btn.setMinimumWidth(120)
+        self.shell_btn.setFixedHeight(40)
+        self.shell_btn.setToolTip("Open Pygon Shell with active binaries in PATH")
+        self.shell_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.shell_btn.clicked.connect(self.on_open_shell)
+        layout.addWidget(self.shell_btn)
         
         # Right — Settings
         self.settings_btn = QPushButton("⚙️")
-        self.settings_btn.setFont(QFont("Segoe UI Emoji", 14))
-        self.settings_btn.setFixedSize(48, 44)
+        self.settings_btn.setFont(QFont("Segoe UI Emoji", 16))
+        self.settings_btn.setFixedSize(50, 45)
         self.settings_btn.setToolTip("Open Preferences and Port settings")
         self.settings_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.settings_btn.clicked.connect(self.on_open_settings)

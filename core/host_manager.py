@@ -12,16 +12,21 @@ class HostManager:
         self.vhost_conf_dir = vhost_conf_dir
         self.document_root = document_root
         
-        # Apache VirtualHost Template
+        # Apache VirtualHost Template with PHP FastCGI support
         self.template_str = """
 <VirtualHost *:80>
-    ServerName {{ project_name }}.test
+    ServerName {{ project_name }}.pygon
     DocumentRoot "{{ project_path }}"
     <Directory "{{ project_path }}">
         Options Indexes FollowSymLinks
         AllowOverride All
         Require all granted
     </Directory>
+
+    # PHP FastCGI Proxy
+    <FilesMatch \\.php$>
+        SetHandler "proxy:fcgi://127.0.0.1:{{ php_port }}"
+    </FilesMatch>
 </VirtualHost>
 """
 
@@ -54,15 +59,31 @@ class HostManager:
             logging.error(f"Failed to edit hosts file: {e}")
             return False
 
-    def generate_vhost_config(self, project_name: str) -> bool:
+    def generate_vhost_config(self, project_name: str, config_manager=None) -> bool:
         """Generates an Apache VirtualHost config file."""
         try:
             template = Template(self.template_str)
             project_path = os.path.join(self.document_root, project_name).replace("\\", "/")
             
+            # Default PHP port
+            php_port = 9000
+            
+            if config_manager:
+                # Check the global PHP port setting
+                global_php_port = config_manager.get_service_port("PHP Version")
+                if global_php_port:
+                    php_port = global_php_port
+                
+                # Check if this specific project path has a custom version/port mapped
+                custom_ver = config_manager.get_project_version(project_path)
+                if custom_ver:
+                    # Logic for mapping custom versions to ports would go here
+                    pass
+            
             config_content = template.render(
                 project_name=project_name, 
-                project_path=project_path
+                project_path=project_path,
+                php_port=php_port
             )
             
             conf_filename = os.path.join(self.vhost_conf_dir, f"vhost-{project_name}.conf")
@@ -70,7 +91,7 @@ class HostManager:
             
             with open(conf_filename, 'w') as f:
                 f.write(config_content)
-            logging.info(f"Generated VirtualHost config for {project_name}.test")
+            logging.info(f"Generated VirtualHost config for {project_name}.pygon using PHP port {php_port}")
             return True
         except Exception as e:
             logging.error(f"Failed to generate VirtualHost config: {e}")

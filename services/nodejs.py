@@ -15,6 +15,9 @@ class NodejsService(BaseService):
     def icon_color(self) -> str:
         return "#68A063"
 
+    def get_base_folder(self) -> str:
+        return "node"
+
     @property
     def description(self) -> str:
         return "Node.js Runtime"

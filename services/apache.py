@@ -77,6 +77,11 @@ class ApacheService(BaseService):
             elif 'ServerRoot' in content:
                 content = re.sub(r'ServerRoot ".*"', f'ServerRoot "{safe_root}"', content)
 
+            # 3. Enable Required Modules for FastCGI Proxy
+            for mod in ["proxy_module", "proxy_fcgi_module"]:
+                # Uncomment the module if it's commented out
+                content = re.sub(fr'#\s*LoadModule {mod}', f'LoadModule {mod}', content)
+
             # 3. Patch PHP (if version selected)
             php_ver = self.config.get_service_version("PHP Version")
             if php_ver:

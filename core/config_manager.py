@@ -12,16 +12,16 @@ class ConfigManager:
 
     def load_config(self) -> dict:
         if not os.path.exists(self.config_path):
-            return {"versions": {}, "ports": {}, "autostart": {}, "general": {}, "services_enabled": {}, "services_ssl": {}}
+            return {"versions": {}, "ports": {}, "autostart": {}, "general": {}, "services_enabled": {}, "services_ssl": {}, "profiles": {}, "project_versions": {}}
 
         try:
             with open(self.config_path, "r") as f:
                 data = yaml.safe_load(f) or {}
-                for key in ("versions", "ports", "autostart", "general", "services_enabled", "services_ssl"):
+                for key in ("versions", "ports", "autostart", "general", "services_enabled", "services_ssl", "profiles", "project_versions"):
                     data.setdefault(key, {})
                 return data
         except Exception:
-            return {"versions": {}, "ports": {}, "autostart": {}, "general": {}, "services_enabled": {}, "services_ssl": {}}
+            return {"versions": {}, "ports": {}, "autostart": {}, "general": {}, "services_enabled": {}, "services_ssl": {}, "profiles": {}, "project_versions": {}}
 
     def save_config(self):
         try:
@@ -29,6 +29,42 @@ class ConfigManager:
                 yaml.dump(self.settings, f)
         except Exception as e:
             print(f"Error saving config: {e}")
+
+    # ── Service Profiles ──────────────────────────────────────────────
+    def get_profiles(self) -> dict:
+        """Returns all saved profiles."""
+        return self.settings.setdefault("profiles", {})
+
+    def save_profile(self, name: str):
+        """Saves current service/version state as a named profile."""
+        profile_data = {
+            "versions": self.settings.get("versions", {}).copy(),
+            "enabled": self.settings.get("services_enabled", {}).copy()
+        }
+        self.settings.setdefault("profiles", {})[name] = profile_data
+        self.save_config()
+
+    def load_profile(self, name: str):
+        """Overwrites current settings with those from a profile."""
+        profile = self.settings.get("profiles", {}).get(name)
+        if not profile: return
+        
+        if "versions" in profile:
+            self.settings["versions"].update(profile["versions"])
+        if "enabled" in profile:
+            self.settings["services_enabled"].update(profile["enabled"])
+        
+        self.save_config()
+
+    # ── Project Version Mapping ─────────────────────────────────────
+    def get_project_version(self, project_path: str) -> str:
+        """Returns the specific PHP/Node version mapped to a project path."""
+        return self.settings.setdefault("project_versions", {}).get(project_path)
+
+    def set_project_version(self, project_path: str, version: str):
+        """Maps a project path to a specific service version."""
+        self.settings.setdefault("project_versions", {})[project_path] = version
+        self.save_config()
 
     # ── Service Version ──────────────────────────────────────────────
     def get_service_version(self, service_name: str) -> str:

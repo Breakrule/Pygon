@@ -40,3 +40,46 @@ class SystemUtils:
             return cpu, mem, disk
         except:
             return 0.0, 0.0, 0.0
+
+    @staticmethod
+    def get_process_metrics(pid: int):
+        """Returns (cpu_usage, memory_bytes) for a process and all its children."""
+        try:
+            parent = psutil.Process(pid)
+            processes = [parent] + parent.children(recursive=True)
+            
+            total_cpu = 0.0
+            total_mem = 0
+            
+            for p in processes:
+                try:
+                    # Note: cpu_percent(interval=None) is better for recurring polling
+                    total_cpu += p.cpu_percent()
+                    total_mem += p.memory_info().rss
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    continue
+            
+            return total_cpu, total_mem
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            return 0.0, 0
+
+    @staticmethod
+    def launch_pygon_shell(registry):
+        """Launches a shell with binaries of active services in the PATH."""
+        import subprocess
+        env = os.environ.copy()
+        paths = []
+        
+        for svc in registry.get_all_services():
+            exe = svc.get_actual_executable_path()
+            if os.path.exists(exe):
+                bin_dir = os.path.abspath(os.path.dirname(exe))
+                if bin_dir not in paths:
+                    paths.append(bin_dir)
+        
+        if paths:
+            new_path = os.pathsep.join(paths) + os.pathsep + env.get("PATH", "")
+            env["PATH"] = new_path
+        
+        subprocess.Popen(["cmd.exe", "/K", "echo Pygon Dev Shell Initialized! & echo Active paths: " + str(paths) + " & prompt Pygon$G "], 
+                        env=env, creationflags=subprocess.CREATE_NEW_CONSOLE)

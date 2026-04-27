@@ -1,11 +1,11 @@
-# ⚡ Pygon v3.1: Neon Dark Mode
+# ⚡ Pygon v4.0: Professional Development Suite
 
 **Pygon** is a lightweight, portable, and visually stunning local development suite for Windows. Designed for speed and aesthetic excellence, it provides a high-performance alternative to XAMPP and Laragon with a sleek Cyberpunk-inspired interface.
 
-![Pygon Banner](https://raw.githubusercontent.com/Breakrule/Pygon/main/dist/preview.png)
 
-## 🌌 The Neon Experience
-Pygon v3.1 introduces a complete UI overhaul focused on **Neon Dark Mode**. Built with **PyQt6**, the interface features an Obsidian-black foundation with vibrant Cyan, Green, and Pink accents, delivering a state-of-the-art developer workspace.
+
+## 🌌 The Professional Experience
+Pygon v4.0 introduces a complete UI overhaul and professional-grade developer tools. Built with **PyQt6**, the interface features an Obsidian-black foundation with vibrant Cyan, Green, and Pink accents, delivering a state-of-the-art developer workspace.
 
 ## 🚀 Key Features
 
