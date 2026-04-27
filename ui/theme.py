@@ -9,7 +9,7 @@ THEMES = {
         "text_dim": "#8B949E",
         "accent": "#00F3FF",        # Neon Cyan
         "accent_hover": "#00D1FF",
-        "success": "#39FF14",       # Neon Green (New)
+        "success": "#39FF14",       # Neon Green
         "danger": "#FF0055",        # Neon Pink
         "danger_hover": "#FF3377",
         "warning": "#F2FF00",       # Neon Yellow
@@ -17,6 +17,25 @@ THEMES = {
         "status_bar": "#0D1117",
         "scroll_handle": "#30363D",
         "scroll_bg": "#05070A"
+    },
+    "light": {
+        "bg": "#F8FAFC",
+        "surface": "#FFFFFF",
+        "card": "#F1F5F9",
+        "card_hover": "#E2E8F0",
+        "border": "#CBD5E1",
+        "text": "#0F172A",
+        "text_dim": "#64748B",
+        "accent": "#3B82F6",        # Blue
+        "accent_hover": "#2563EB",
+        "success": "#10B981",       # Emerald
+        "danger": "#EF4444",        # Red
+        "danger_hover": "#DC2626",
+        "warning": "#F59E0B",       # Amber
+        "console_bg": "#1E293B",    # Keep console dark for readability
+        "status_bar": "#E2E8F0",
+        "scroll_handle": "#CBD5E1",
+        "scroll_bg": "#F8FAFC"
     }
 }
 

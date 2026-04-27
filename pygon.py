@@ -405,7 +405,7 @@ class PygonApp(BaseWindow):
         return []
 
     def _open_settings(self):
-        SettingsDialog(self, self.config, self.registry, self.colors, self._rebuild_ui).exec()
+        SettingsDialog(self, self.config, self.registry, self.colors, self.refresh_theme).exec()
 
     def _run_download_with_ui(self, name, key, target):
         dlg = DownloadDialog(self, self.downloader, name, key, target)

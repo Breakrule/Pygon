@@ -106,6 +106,18 @@ class SettingsDialog(QDialog):
             gen_layout.addWidget(rb)
             bg.addButton(rb, i)
 
+        # Theme Settings
+        gen_layout.addSpacing(10)
+        gen_layout.addWidget(QLabel("Interface Theme:"))
+        theme_bg = QButtonGroup(gen)
+        current_theme = self.config.get_theme()
+        for i, (label, val) in enumerate([("Dark Mode (Neon)", "dark"), ("Light Mode (Clean)", "light")]):
+            rb = QRadioButton(label)
+            if current_theme == val: rb.setChecked(True)
+            rb.toggled.connect(lambda v, x=val: v and (self.config.set_theme(x), self.rebuild_ui(x)))
+            gen_layout.addWidget(rb)
+            theme_bg.addButton(rb, i)
+
         gen_layout.addStretch()
         self.tabs.addTab(gen, "General")
 

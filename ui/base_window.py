@@ -16,7 +16,10 @@ class BaseWindow(QMainWindow):
         
         self.refresh_theme(theme_name)
 
-    def refresh_theme(self, theme_name):
+    def refresh_theme(self, theme_name=None):
+        if theme_name is None:
+            theme_name = self._current_theme
+            
         self._current_theme = theme_name
         self.colors = THEMES.get(theme_name, THEMES["dark"])
         
