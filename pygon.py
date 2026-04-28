@@ -57,7 +57,7 @@ class PygonApp(BaseWindow):
         super().__init__(theme_name=self.config.get_theme())
 
         # 5. Final Setup
-        self.setWindowTitle(f"{APP_NAME} v4.0")
+        self.setWindowTitle(f"{APP_NAME} v4.1.0")
         self.resize(1100, 700)
         self.setMinimumSize(900, 600)
         

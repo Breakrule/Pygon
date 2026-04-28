@@ -202,7 +202,7 @@ class SettingsDialog(QDialog):
         title_lbl.setStyleSheet(f"color: {self.colors['accent']}; margin-top: 10px;")
         about_layout.addWidget(title_lbl, alignment=Qt.AlignmentFlag.AlignCenter)
         
-        ver_lbl = QLabel("v4.0 Professional Suite")
+        ver_lbl = QLabel("v4.1.0 Professional Suite")
         ver_lbl.setFont(QFont("Segoe UI", 12, QFont.Weight.Medium))
         ver_lbl.setStyleSheet(f"color: {self.colors['text_dim']};")
         about_layout.addWidget(ver_lbl, alignment=Qt.AlignmentFlag.AlignCenter)

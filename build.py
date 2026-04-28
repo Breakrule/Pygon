@@ -23,7 +23,7 @@ env.pop("PYTHONPATH", None)
 
 # We package the main pygon.py as windowed to hide the black console
 subprocess.run([
-    pyinstaller_path,
+    sys.executable, "-m", "PyInstaller",
     "--clean",
     "--noconfirm",
     "--name", "Pygon",
