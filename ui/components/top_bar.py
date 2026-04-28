@@ -3,11 +3,12 @@ from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont
 
 class TopBar(QWidget):
-    def __init__(self, parent, colors, app_name, on_open_settings, on_open_shell, on_profile_change, on_add_profile):
+    def __init__(self, parent, colors, app_name, on_open_settings, on_open_shell, on_open_console, on_profile_change, on_add_profile):
         super().__init__(parent)
         self.colors = colors
         self.on_open_settings = on_open_settings
         self.on_open_shell = on_open_shell
+        self.on_open_console = on_open_console
         self.on_profile_change = on_profile_change
         self.on_add_profile = on_add_profile
         
@@ -50,6 +51,15 @@ class TopBar(QWidget):
         self.shell_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.shell_btn.clicked.connect(self.on_open_shell)
         layout.addWidget(self.shell_btn)
+
+        # Terminal Button
+        self.terminal_btn = QPushButton("📟  Terminal")
+        self.terminal_btn.setMinimumWidth(120)
+        self.terminal_btn.setFixedHeight(40)
+        self.terminal_btn.setToolTip("Open Console, Logs, and Errors")
+        self.terminal_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.terminal_btn.clicked.connect(self.on_open_console)
+        layout.addWidget(self.terminal_btn)
         
         # Right — Settings
         self.settings_btn = QPushButton("⚙️")

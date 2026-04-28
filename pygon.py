@@ -32,6 +32,7 @@ from ui.components.service_card import ServiceCard
 from ui.components.console_panel import ConsolePanel
 from ui.dialogs.settings_dialog import SettingsDialog
 from ui.dialogs.download_dialog import DownloadDialog
+from ui.dialogs.console_window import ConsoleWindow
 
 class PygonApp(BaseWindow):
     def __init__(self):
@@ -83,7 +84,7 @@ class PygonApp(BaseWindow):
 
     def _build_ui(self):
         # Top Bar
-        self.top_bar = TopBar(self, self.colors, APP_NAME, self._open_settings, self._on_open_shell, self._on_profile_change, self._on_add_profile)
+        self.top_bar = TopBar(self, self.colors, APP_NAME, self._open_settings, self._on_open_shell, self._on_open_console, self._on_profile_change, self._on_add_profile)
         self.main_layout.addWidget(self.top_bar)
         
         # Populate Profiles
@@ -148,16 +149,8 @@ class PygonApp(BaseWindow):
         scroll.setWidget(scroll_content)
         upper_layout.addWidget(scroll)
 
-        # self.sys_info = SystemInfoPanel(upper_panel, self.colors)
-        # upper_layout.addWidget(self.sys_info)
-
-        # Lower Panel: Console
-        self.console = ConsolePanel(self.splitter, self.colors, self._on_clear_console)
-        
         self.splitter.addWidget(upper_panel)
-        self.splitter.addWidget(self.console)
-        self.splitter.setStretchFactor(0, 7)
-        self.splitter.setStretchFactor(1, 3)
+        self.splitter.setStretchFactor(0, 1)
 
         # Status Bar
         self.status_bar = QWidget()
@@ -220,6 +213,14 @@ class PygonApp(BaseWindow):
     def _on_open_shell(self):
         SystemUtils.launch_pygon_shell(self.registry)
 
+    def _on_open_console(self):
+        if not hasattr(self, 'console_window') or not self.console_window:
+            self.console_window = ConsoleWindow(self, self.colors, self._on_clear_console)
+        
+        self.console_window.show()
+        self.console_window.raise_()
+        self.console_window.activateWindow()
+
     def _on_profile_change(self, profile_name):
         if profile_name == "Default Profile":
             # For now, Default just means current state.
@@ -249,12 +250,12 @@ class PygonApp(BaseWindow):
 
     def _poll_logs(self):
         try:
-            if not hasattr(self, 'console') or not self.console: return
+            if not hasattr(self, 'console_window') or not self.console_window: return
             for svc in self.registry.get_all_services():
                 for line in svc.get_new_logs(): 
-                    self.console.append("Logs", f"[{svc.name}] {line}")
+                    self.console_window.append("Logs", f"[{svc.name}] {line}")
                 for line in svc.get_new_errors(): 
-                    self.console.append("Errors", f"[{svc.name}] {line}")
+                    self.console_window.append("Errors", f"[{svc.name}] {line}")
         except (RuntimeError, AttributeError):
             pass
 
@@ -283,11 +284,14 @@ class PygonApp(BaseWindow):
         threading.Thread(target=run, daemon=True).start()
 
     def _on_clear_console(self):
-        self.console.clear()
+        if hasattr(self, 'console_window') and self.console_window:
+            self.console_window.clear()
         for svc in self.registry.get_all_services(): svc.clear_logs()
 
     def _append_console(self, tab, text):
-        self.console.append(tab, text)
+        if not hasattr(self, 'console_window') or not self.console_window:
+            self.console_window = ConsoleWindow(self, self.colors, self._on_clear_console)
+        self.console_window.append(tab, text)
 
     def closeEvent(self, event):
         behavior = self.config.get_close_behavior()
@@ -465,7 +469,7 @@ class PygonApp(BaseWindow):
             
             # Use Popen to launch without blocking
             subprocess.Popen(args, creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0)
-            self.console.append("Console", f"[HeidiSQL] Launching for {service.name} on port {service.current_port}...")
+            self._append_console("Console", f"[HeidiSQL] Launching for {service.name} on port {service.current_port}...")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to launch HeidiSQL: {e}")
 
