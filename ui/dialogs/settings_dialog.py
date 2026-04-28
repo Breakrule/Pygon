@@ -35,7 +35,7 @@ class SettingsDialog(QDialog):
         footer.addStretch()
         close_btn = QPushButton("Done")
         close_btn.setObjectName("AccentButton")
-        close_btn.setFixedSize(100, 36)
+        close_btn.setFixedSize(120, 40)
         close_btn.clicked.connect(self.accept)
         footer.addWidget(close_btn)
         layout.addLayout(footer)
@@ -74,10 +74,10 @@ class SettingsDialog(QDialog):
         doc_root_layout.addWidget(QLabel("Web Root (www):"), 2)
         self.doc_root_edit = QLineEdit(self.config.get_general("document_root", WWW_DIR))
         self.doc_root_edit.setReadOnly(True)
-        self.doc_root_edit.setFixedHeight(32)
+        self.doc_root_edit.setFixedHeight(40)
         doc_root_layout.addWidget(self.doc_root_edit, 5)
         browse_btn = QPushButton("Browse")
-        browse_btn.setFixedSize(100, 32)
+        browse_btn.setFixedSize(100, 40)
         browse_btn.clicked.connect(self._on_browse_docroot)
         doc_root_layout.addWidget(browse_btn)
         gen_layout.addLayout(doc_root_layout)
@@ -87,10 +87,10 @@ class SettingsDialog(QDialog):
         data_dir_layout.addWidget(QLabel("Data Directory:"), 2)
         self.data_dir_edit = QLineEdit(self.config.get_general("data_dir", os.path.join(BASE_DIR, "data")))
         self.data_dir_edit.setReadOnly(True)
-        self.data_dir_edit.setFixedHeight(32)
+        self.data_dir_edit.setFixedHeight(40)
         data_dir_layout.addWidget(self.data_dir_edit, 5)
         browse_data_btn = QPushButton("Browse")
-        browse_data_btn.setFixedSize(100, 32)
+        browse_data_btn.setFixedSize(100, 40)
         browse_data_btn.clicked.connect(self._on_browse_datadir)
         data_dir_layout.addWidget(browse_data_btn)
         gen_layout.addLayout(data_dir_layout)
@@ -134,12 +134,19 @@ class SettingsDialog(QDialog):
         for svc in self.registry.get_all_services():
             row = QFrame()
             row.setFrameStyle(QFrame.Shape.StyledPanel)
-            row.setStyleSheet(f"border: 1px solid {self.colors['border']}; border-radius: 8px; padding: 12px;")
+            row.setStyleSheet(f"""
+                QFrame {{
+                    border: 1px solid {self.colors['border']};
+                    border-radius: 8px;
+                    background-color: {self.colors['surface']};
+                }}
+            """)
             h = QHBoxLayout(row)
             h.setContentsMargins(15, 10, 15, 10)
             
             enable_check = QCheckBox(svc.name)
-            enable_check.setFont(QFont("Segoe UI", 11, QFont.Weight.Medium))
+            enable_check.setFixedHeight(40)
+            enable_check.setFont(QFont("Inter", 11, QFont.Weight.Medium))
             enable_check.setChecked(self.config.get_service_enabled(svc.name))
             enable_check.toggled.connect(lambda v, s=svc.name: (self.config.set_service_enabled(s, v), self.rebuild_ui()))
             h.addWidget(enable_check, 2)
@@ -148,7 +155,8 @@ class SettingsDialog(QDialog):
             
             if "apache" in svc.name.lower():
                 ssl_check = QCheckBox("SSL")
-                ssl_check.setFont(QFont("Segoe UI", 10))
+                ssl_check.setFixedHeight(40)
+                ssl_check.setFont(QFont("Inter", 10))
                 ssl_check.setChecked(self.config.get_service_ssl(svc.name))
                 ssl_check.toggled.connect(lambda v, s=svc.name: self.config.set_service_ssl(s, v))
                 h.addWidget(ssl_check)
@@ -157,7 +165,8 @@ class SettingsDialog(QDialog):
             h.addWidget(QLabel("Port:"), 0)
             port_spin = QSpinBox()
             port_spin.setMinimumWidth(120)
-            port_spin.setFixedHeight(36)
+            port_spin.setFixedHeight(40)
+            port_spin.setButtonSymbols(QSpinBox.ButtonSymbols.NoButtons)
             port_spin.setRange(1, 65535)
             port_spin.setValue(svc.current_port)
             port_spin.valueChanged.connect(lambda v, s=svc.name: self.config.set_service_port(s, v))

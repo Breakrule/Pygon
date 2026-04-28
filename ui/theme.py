@@ -1,55 +1,55 @@
 THEMES = {
     "dark": {
-        "bg": "#05070A",
-        "surface": "#0D1117",
-        "card": "#161B22",
-        "card_hover": "#1C2128",
-        "border": "#30363D",
-        "text": "#E6EDF3",
-        "text_dim": "#8B949E",
-        "text_inv": "#000000",
-        "accent": "#00F3FF",
-        "accent_hover": "#00D1FF",
-        "success": "#39FF14",
-        "danger": "#FF0055",
-        "danger_hover": "#FF3377",
-        "warning": "#F2FF00",
-        "console_bg": "#010409",
-        "console_text": "#A8D8A0",
-        "status_bar": "#0D1117",
-        "scroll_handle": "#30363D",
-        "scroll_bg": "#05070A"
+        "bg": "#0F172A",
+        "surface": "#1E293B",
+        "card": "#1E293B",
+        "card_hover": "#334155",
+        "border": "#334155",
+        "text": "#F8FAFC",
+        "text_dim": "#94A3B8",
+        "text_inv": "#FFFFFF",
+        "accent": "#3B82F6",
+        "accent_hover": "#60A5FA",
+        "success": "#10B981",
+        "danger": "#EF4444",
+        "danger_hover": "#F87171",
+        "warning": "#F59E0B",
+        "console_bg": "#020617",
+        "console_text": "#A5F3FC",
+        "status_bar": "#1E293B",
+        "scroll_handle": "#475569",
+        "scroll_bg": "#0F172A"
     },
     "light": {
-        "bg": "#F8FAFC",
+        "bg": "#F9FAFB",
         "surface": "#FFFFFF",
-        "card": "#F1F5F9",
-        "card_hover": "#E2E8F0",
-        "border": "#CBD5E1",
-        "text": "#0F172A",
-        "text_dim": "#3C4552",
-        "text_inv": "#0F172A",
-        "accent": "#3B82F6",
-        "accent_hover": "#2563EB",
+        "card": "#FFFFFF",
+        "card_hover": "#F3F4F6",
+        "border": "#E5E7EB",
+        "text": "#111827",
+        "text_dim": "#6B7280",
+        "text_inv": "#FFFFFF",
+        "accent": "#2563EB",
+        "accent_hover": "#3B82F6",
         "success": "#10B981",
         "danger": "#EF4444",
         "danger_hover": "#DC2626",
         "warning": "#F59E0B",
-        "console_bg": "#F1F5F9",
-        "console_text": "#1E293B",
-        "status_bar": "#E2E8F0",
-        "scroll_handle": "#CBD5E1",
-        "scroll_bg": "#F8FAFC"
+        "console_bg": "#F3F4F6",
+        "console_text": "#1F2937",
+        "status_bar": "#F9FAFB",
+        "scroll_handle": "#D1D5DB",
+        "scroll_bg": "#F9FAFB"
     }
 }
 
 def generate_qss(colors: dict) -> str:
-    """Generates a Neon-styled Dark Mode Qt Stylesheet."""
+    """Generates a premium, modern software stylesheet."""
     return f"""
         QMainWindow, QDialog, QFrame#MainContent, QScrollArea {{
             background-color: {colors['bg']};
             color: {colors['text']};
-            font-family: 'Segoe UI', 'Consolas', sans-serif;
+            font-family: 'Inter', 'Segoe UI', sans-serif;
             border: none;
         }}
         
@@ -60,15 +60,15 @@ def generate_qss(colors: dict) -> str:
         
         QFrame#SurfacePanel {{
             background-color: {colors['surface']};
-            border-radius: 12px;
+            border-radius: 8px;
             border: 1px solid {colors['border']};
         }}
         
         QFrame#ServiceCard {{
             background-color: {colors['card']};
-            border-radius: 10px;
+            border-radius: 8px;
             border: 1px solid {colors['border']};
-            margin-bottom: 2px;
+            margin-bottom: 4px;
         }}
         
         QFrame#ServiceCard:hover {{
@@ -76,21 +76,13 @@ def generate_qss(colors: dict) -> str:
             border: 1px solid {colors['accent']};
         }}
         
-        QLabel {{
-            color: {colors['text']};
-        }}
-        
-        QLabel#DimText {{
-            color: {colors['text_dim']};
-        }}
-        
         QPushButton {{
             background-color: {colors['card']};
             color: {colors['text']};
             border: 1px solid {colors['border']};
             padding: 8px 16px;
-            border-radius: 8px;
-            font-weight: bold;
+            border-radius: 6px;
+            font-weight: 600;
         }}
         
         QPushButton:hover {{
@@ -100,36 +92,39 @@ def generate_qss(colors: dict) -> str:
         }}
         
         QPushButton#AccentButton {{
-            background-color: {colors['success']};
+            background-color: {colors['accent']};
             color: {colors['text_inv']};
             border: none;
-            padding: 8px 15px;
-            font-size: 10pt;
+            padding: 8px 16px;
         }}
         
         QPushButton#AccentButton:hover {{
-            background-color: {colors['accent']};
-            color: {colors['text_inv']};
+            background-color: {colors['accent_hover']};
         }}
         
         QPushButton#DangerButton {{
             background-color: {colors['danger']};
             color: {colors['text_inv']};
             border: none;
-            padding: 8px 15px;
-            font-size: 10pt;
+            padding: 8px 16px;
+        }}
+        
+        QPushButton#DangerButton:hover {{
+            background-color: {colors['danger_hover']};
         }}
 
         QPushButton#MenuButton {{
             background-color: transparent;
-            color: {colors['accent']};
-            border: 1px solid {colors['accent']};
+            color: {colors['text_dim']};
+            border: 1px solid transparent;
             font-size: 14pt;
+            border-radius: 4px;
         }}
         
         QPushButton#MenuButton:hover {{
-            background-color: {colors['accent']};
-            color: {colors['text_inv']};
+            color: {colors['accent']};
+            background-color: {colors['card_hover']};
+            border: 1px solid {colors['border']};
         }}
         
         QProgressBar {{
@@ -137,11 +132,13 @@ def generate_qss(colors: dict) -> str:
             background-color: {colors['console_bg']};
             border-radius: 4px;
             text-align: center;
+            font-weight: bold;
+            color: {colors['text']};
         }}
         
         QProgressBar::chunk {{
             background-color: {colors['accent']};
-            border-radius: 3px;
+            border-radius: 2px;
         }}
         
         QTabWidget::pane {{
@@ -154,10 +151,10 @@ def generate_qss(colors: dict) -> str:
         QTabBar::tab {{
             background: {colors['surface']};
             color: {colors['text_dim']};
-            padding: 10px 25px;
-            margin-right: 5px;
-            border-top-left-radius: 8px;
-            border-top-right-radius: 8px;
+            padding: 8px 20px;
+            margin-right: 4px;
+            border-top-left-radius: 6px;
+            border-top-right-radius: 6px;
             border: 1px solid {colors['border']};
             border-bottom: none;
         }}
@@ -173,9 +170,9 @@ def generate_qss(colors: dict) -> str:
             background-color: {colors['console_bg']};
             color: {colors['text']};
             border: 1px solid {colors['border']};
-            border-radius: 8px;
-            padding: 6px 12px;
-            font-family: 'Consolas', 'Courier New';
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
             selection-background-color: {colors['accent']};
             selection-color: {colors['text_inv']};
         }}
@@ -186,41 +183,59 @@ def generate_qss(colors: dict) -> str:
             background: {colors['card']};
         }}
         
-        QSpinBox::up-button:hover, QSpinBox::down-button:hover {{
-            background: {colors['card_hover']};
-        }}
-        
         QComboBox {{
             background-color: {colors['card']};
             color: {colors['text']};
             border: 1px solid {colors['border']};
             border-radius: 6px;
-            padding: 4px 12px;
-            min-width: 80px;
+            padding: 4px 30px 4px 12px;
+            min-width: 100px;
         }}
         
         QComboBox:hover {{
             border: 1px solid {colors['accent']};
         }}
         
+        QComboBox::drop-down {{
+            subcontrol-origin: padding;
+            subcontrol-position: top right;
+            width: 30px;
+            border-left: none;
+        }}
+
+        QComboBox::down-arrow {{
+            image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='{colors['text_dim'].replace('#', '%23')}' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            width: 14px;
+            height: 14px;
+        }}
+        
         QComboBox QAbstractItemView {{
-            background-color: {colors['card']};
+            background-color: {colors['surface']};
             color: {colors['text']};
             selection-background-color: {colors['accent']};
+            selection-color: {colors['text_inv']};
             border: 1px solid {colors['border']};
+            border-radius: 8px;
             outline: none;
+            padding: 4px;
+        }}
+        
+        QComboBox QAbstractItemView::item {{
+            min-height: 32px;
+            padding-left: 10px;
+            border-radius: 4px;
         }}
         
         QMenu {{
             background-color: {colors['surface']};
             color: {colors['text']};
-            border: 1px solid {colors['accent']};
+            border: 1px solid {colors['border']};
             border-radius: 8px;
-            padding: 5px;
+            padding: 4px;
         }}
         
         QMenu::item {{
-            padding: 8px 30px 8px 25px;
+            padding: 6px 24px;
             border-radius: 4px;
         }}
         
@@ -229,44 +244,47 @@ def generate_qss(colors: dict) -> str:
             color: {colors['text_inv']};
         }}
         
-        QMenu::separator {{
-            height: 1px;
-            background: {colors['border']};
-            margin: 5px 10px;
-        }}
-        
         QCheckBox, QRadioButton {{
-            spacing: 12px;
-            font-weight: 500;
+            spacing: 8px;
             color: {colors['text']};
         }}
         
-        QCheckBox::indicator {{
-            width: 20px;
-            height: 20px;
-            border: 2px solid {colors['border']};
-            border-radius: 6px;
-            background: {colors['card']};
+        QCheckBox::indicator, QRadioButton::indicator {{
+            width: 18px;
+            height: 18px;
+            border: 1px solid {colors['border']};
+            border-radius: 4px;
+            background: {colors['bg']};
         }}
         
+        QRadioButton::indicator {{
+            border-radius: 9px;
+        }}
+
         QCheckBox::indicator:checked {{
             background: {colors['accent']};
             border-color: {colors['accent']};
+            image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white' width='14px' height='14px'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z'/%3E%3C/svg%3E");
+        }}
+
+        QRadioButton::indicator:checked {{
+            background: {colors['bg']};
+            border-color: {colors['accent']};
+            image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='6' fill='{colors['accent'].replace('#', '%23')}'/%3E%3C/svg%3E");
         }}
         
         QScrollBar:vertical {{
             border: none;
             background: {colors['bg']};
-            width: 10px;
+            width: 8px;
             margin: 0px;
         }}
         
         QScrollBar::handle:vertical {{
-            background: {colors['accent']};
+            background: {colors['scroll_handle']};
             min-height: 20px;
-            border-radius: 5px;
+            border-radius: 4px;
             margin: 2px;
-            opacity: 0.5;
         }}
         
         QSplitter::handle {{

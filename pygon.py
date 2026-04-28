@@ -27,7 +27,7 @@ from services.registry import ServiceRegistry
 
 # UI Imports
 from ui.base_window import BaseWindow
-from ui.components.top_bar import TopBar
+from ui.components.sidebar import Sidebar
 from ui.components.service_card import ServiceCard
 from ui.components.console_panel import ConsolePanel
 from ui.dialogs.settings_dialog import SettingsDialog
@@ -83,41 +83,46 @@ class PygonApp(BaseWindow):
             QTimer.singleShot(100, self.hide)
 
     def _build_ui(self):
-        # Top Bar
-        self.top_bar = TopBar(self, self.colors, APP_NAME, self._open_settings, self._on_open_shell, self._on_open_console, self._on_profile_change, self._on_add_profile)
-        self.main_layout.addWidget(self.top_bar)
-        
-        # Populate Profiles
+        # Create Root Horizontal Layout
+        self.root_layout = QHBoxLayout()
+        self.root_layout.setContentsMargins(0, 0, 0, 0)
+        self.root_layout.setSpacing(0)
+        self.main_layout.addLayout(self.root_layout)
+
+        # 1. Sidebar
+        self.sidebar = Sidebar(
+            self, self.colors, APP_NAME, 
+            self._open_settings, self._on_open_shell, self._on_open_console, self._open_db_manager,
+            self._on_profile_change, self._on_add_profile
+        )
+        self.root_layout.addWidget(self.sidebar)
+
+        # 2. Workspace Area (Right side)
+        self.workspace = QFrame()
+        self.workspace.setObjectName("MainContent")
+        self.workspace_layout = QVBoxLayout(self.workspace)
+        self.workspace_layout.setContentsMargins(0, 0, 0, 0)
+        self.workspace_layout.setSpacing(0)
+        self.root_layout.addWidget(self.workspace)
+
+        # Populate Profiles in Sidebar (Block signals to avoid popups during launch)
+        self.sidebar.profile_combo.blockSignals(True)
         profiles = self.config.get_profiles()
         for p_name in profiles.keys():
-            self.top_bar.profile_combo.addItem(p_name)
+            self.sidebar.profile_combo.addItem(p_name)
+        self.sidebar.profile_combo.blockSignals(False)
 
-        # Main Splitter
-        self.splitter = QSplitter(Qt.Orientation.Vertical)
-        self.splitter.setHandleWidth(1)
-        self.main_layout.addWidget(self.splitter)
-
-        # Upper Panel: Services List
-        upper_panel = QFrame()
-        upper_panel.setObjectName("MainContent")
-        upper_layout = QVBoxLayout(upper_panel)
-        upper_layout.setContentsMargins(20, 10, 20, 10)
-        upper_layout.setSpacing(15)
-
-        # Services Header
-        header_layout = QHBoxLayout()
-        svc_title = QLabel("Services")
-        svc_title.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
+        # Services Header Area
+        header_widget = QWidget()
+        header_widget.setFixedHeight(80)
+        header_layout = QHBoxLayout(header_widget)
+        header_layout.setContentsMargins(30, 20, 30, 10)
+        
+        svc_title = QLabel("Service Overview")
+        svc_title.setFont(QFont("Inter", 18, QFont.Weight.Bold))
         header_layout.addWidget(svc_title)
         
         header_layout.addStretch()
-        
-        self.db_manager_btn = QPushButton("🗄  Database")
-        self.db_manager_btn.setFixedSize(150, 40)
-        self.db_manager_btn.setToolTip("Open HeidiSQL Database Manager")
-        self.db_manager_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.db_manager_btn.clicked.connect(lambda: self._open_db_manager(None))
-        header_layout.addWidget(self.db_manager_btn)
         
         self.start_all_btn = QPushButton("▶  START ALL")
         self.start_all_btn.setObjectName("AccentButton")
@@ -125,19 +130,19 @@ class PygonApp(BaseWindow):
         self.start_all_btn.setToolTip("Start or Stop all enabled services")
         self.start_all_btn.clicked.connect(self._on_toggle_all)
         header_layout.addWidget(self.start_all_btn)
-        upper_layout.addLayout(header_layout)
+        
+        self.workspace_layout.addWidget(header_widget)
 
         # Scroll Area for Services
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
-        scroll.setStyleSheet("background: transparent;")
         
         scroll_content = QWidget()
         scroll_content.setObjectName("MainContent")
         self.svc_list_layout = QVBoxLayout(scroll_content)
-        self.svc_list_layout.setContentsMargins(0, 0, 10, 0)
-        self.svc_list_layout.setSpacing(10)
+        self.svc_list_layout.setContentsMargins(30, 10, 30, 20)
+        self.svc_list_layout.setSpacing(12)
         
         enabled_services = [s for s in self.registry.get_all_services() if self.config.get_service_enabled(s.name)]
         for svc in enabled_services:
@@ -147,18 +152,15 @@ class PygonApp(BaseWindow):
         
         self.svc_list_layout.addStretch()
         scroll.setWidget(scroll_content)
-        upper_layout.addWidget(scroll)
+        self.workspace_layout.addWidget(scroll)
 
-        self.splitter.addWidget(upper_panel)
-        self.splitter.setStretchFactor(0, 1)
-
-        # Status Bar
+        # Status Bar (At the bottom of workspace)
         self.status_bar = QWidget()
-        self.status_bar.setFixedHeight(32)
-        self.status_bar.setStyleSheet(f"background-color: {self.colors['status_bar']}; border-top: 1px solid {self.colors['border']};")
+        self.status_bar.setFixedHeight(35)
+        self.status_bar.setStyleSheet(f"background-color: {self.colors['surface']}; border-top: 1px solid {self.colors['border']};")
         self.status_layout = QHBoxLayout(self.status_bar)
-        self.status_layout.setContentsMargins(20, 0, 20, 0)
-        self.main_layout.addWidget(self.status_bar)
+        self.status_layout.setContentsMargins(30, 0, 30, 0)
+        self.workspace_layout.addWidget(self.status_bar)
 
     def _start_update_loops(self):
         self.ui_timer = QTimer(self)
@@ -238,15 +240,15 @@ class PygonApp(BaseWindow):
             for svc in self.registry.get_all_services():
                 if svc.name in self.cards:
                     self.cards[svc.name].update_status()
-            self.append_log(f"Switched to profile: {profile_name}")
+            self._append_console("Console", f"Switched to profile: {profile_name}")
 
     def _on_add_profile(self):
         name, ok = QInputDialog.getText(self, "New Profile", "Enter profile name:")
         if ok and name:
             self.config.save_profile(name)
-            self.top_bar.profile_combo.addItem(name)
-            self.top_bar.profile_combo.setCurrentText(name)
-            self.append_log(f"Created new profile: {name}")
+            self.sidebar.profile_combo.addItem(name)
+            self.sidebar.profile_combo.setCurrentText(name)
+            self._append_console("Console", f"Created new profile: {name}")
 
     def _poll_logs(self):
         try:
@@ -265,12 +267,13 @@ class PygonApp(BaseWindow):
             if item.widget(): item.widget().deleteLater()
             
         for svc in self.registry.get_all_services():
+            if not self.config.get_service_enabled(svc.name): continue
             if "mariadb" in svc.name.lower(): continue
             running = svc.is_running()
             color = self.colors["accent"] if running else self.colors["text_dim"]
             text = f"● {svc.name.split()[0]}: {'Online' if running else 'Offline'}"
             lbl = QLabel(text)
-            lbl.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
+            lbl.setFont(QFont("Inter", 9, QFont.Weight.Bold))
             lbl.setStyleSheet(f"color: {color};")
             self.status_layout.addWidget(lbl)
             self.status_layout.addSpacing(20)
